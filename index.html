@@ -928,8 +928,10 @@
 
     const STORAGE_KEY = 'hom_nay_an_gi_dishes_hcm_v2';
     const FIREBASE_CONFIG_KEY = 'hom_nay_an_gi_firebase_config_v1';
-    const ADMIN_PIN_KEY = 'hom_nay_an_gi_admin_pin_v1';
-    const DEFAULT_ADMIN_PIN = '123456';
+    const OLD_ADMIN_PIN_KEY = 'hom_nay_an_gi_admin_pin_v1';
+    const ADMIN_PIN_HASH_KEY = 'hom_nay_an_gi_admin_pin_hash_v2';
+    // Mã băm SHA-256 mặc định cho PIN '123456'
+    const DEFAULT_ADMIN_PIN_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
 
     // Cấu hình Firebase Realtime Database (Người dùng nhập qua modal trên web)
     const DEFAULT_FIREBASE_CONFIG = null;
@@ -964,9 +966,10 @@
     let firebaseDb = null;
     let isFirebaseConnected = false;
 
-    // Admin state (Kiểm soát quyền xóa món & khôi phục mẫu)
+    // Admin state (Kiểm soát quyền xóa món & khôi phục mẫu bằng SHA-256 Hash)
     let isAdminAuthenticated = false;
     let pendingAdminCallback = null;
+    let currentPinHash = localStorage.getItem(ADMIN_PIN_HASH_KEY) || DEFAULT_ADMIN_PIN_HASH;
 
     /**
      * DOM ELEMENTS
@@ -1187,6 +1190,21 @@
           console.error("Firebase Realtime Error:", error);
           setCloudStatus('local', 'Lỗi Cloud (' + (error.code || 'quá tải') + '), đang dùng LocalStorage');
           showToast("Cloud gặp sự cố: " + (error.message || 'Quá tải') + ". Tự động chuyển sang LocalStorage", "warning");
+        });
+
+        // Đồng bộ mã PIN Admin (đã mã hóa SHA-256) từ Firebase Realtime
+        const adminPinRef = ref(firebaseDb, "admin_config/pinHash");
+        onValue(adminPinRef, (snapshot) => {
+          const cloudPinHash = snapshot.val();
+          if (cloudPinHash && typeof cloudPinHash === 'string' && cloudPinHash.length >= 16) {
+            currentPinHash = cloudPinHash;
+            localStorage.setItem(ADMIN_PIN_HASH_KEY, cloudPinHash);
+          } else if (!cloudPinHash && currentPinHash && currentPinHash !== DEFAULT_ADMIN_PIN_HASH) {
+            // Tự động đẩy mã PIN hiện có lên Cloud nếu Cloud chưa từng lưu PIN
+            set(ref(firebaseDb, "admin_config/pinHash"), currentPinHash).catch(e => console.warn(e));
+          }
+        }, (err) => {
+          console.warn("Không thể đồng bộ mã PIN từ Cloud:", err);
         });
 
       } catch (e) {
@@ -1833,9 +1851,45 @@
 
     /**
      * 10. PHÂN QUYỀN ADMIN CHO CÁC THAO TÁC NGUY HIỂM (XÓA MÓN & KHÔI PHỤC MẪU)
+     * Mã hóa 1 chiều SHA-256 an toàn và tự động đồng bộ đám mây qua Firebase Realtime Database
      */
-    function getStoredAdminPin() {
-      return localStorage.getItem(ADMIN_PIN_KEY) || DEFAULT_ADMIN_PIN;
+    async function hashPin(pin) {
+      const text = String(pin).trim();
+      if (window.crypto && window.crypto.subtle) {
+        const msgBuffer = new TextEncoder().encode(text);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+      // Dự phòng trường hợp môi trường đặc biệt không có crypto.subtle
+      let hash = 0;
+      for (let i = 0; i < text.length; i++) {
+        const char = text.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0;
+      }
+      return 'fallback_' + Math.abs(hash).toString(16);
+    }
+
+    async function initAdminPinSecurity() {
+      // Tự động di chuyển mã PIN cũ lưu dạng text thô sang chuẩn băm SHA-256
+      const oldPlainPin = localStorage.getItem(OLD_ADMIN_PIN_KEY);
+      if (oldPlainPin) {
+        try {
+          const hashed = await hashPin(oldPlainPin);
+          currentPinHash = hashed;
+          localStorage.setItem(ADMIN_PIN_HASH_KEY, hashed);
+          localStorage.removeItem(OLD_ADMIN_PIN_KEY);
+          console.log("Đã nâng cấp mã PIN sang chuẩn băm SHA-256 bảo mật");
+        } catch (e) {
+          console.warn("Lỗi migrate mã PIN:", e);
+        }
+      } else {
+        const savedHash = localStorage.getItem(ADMIN_PIN_HASH_KEY);
+        if (savedHash) {
+          currentPinHash = savedHash;
+        }
+      }
     }
 
     function requireAdminPermission(actionName, callback) {
@@ -1868,12 +1922,15 @@
       pendingAdminCallback = null;
     }
 
-    function handleAdminPinSubmit(e) {
+    async function handleAdminPinSubmit(e) {
       e.preventDefault();
       const enteredPin = adminPinInput.value.trim();
-      const correctPin = getStoredAdminPin();
+      if (!enteredPin) return;
 
-      if (enteredPin === correctPin) {
+      const enteredHash = await hashPin(enteredPin);
+      const targetHash = currentPinHash || localStorage.getItem(ADMIN_PIN_HASH_KEY) || DEFAULT_ADMIN_PIN_HASH;
+
+      if (enteredHash === targetHash) {
         isAdminAuthenticated = true;
         updateAdminUI(true);
         hideAdminModal();
@@ -1910,15 +1967,37 @@
       showToast("Đã khóa quyền Admin (Chế độ Khách)", "info");
     }
 
-    function handleSaveNewPin() {
+    async function handleSaveNewPin() {
       const newPin = newPinInput.value.trim();
       if (!newPin || newPin.length < 4) {
         showToast("Mã PIN mới phải từ 4 ký tự trở lên!", "warning");
         return;
       }
-      localStorage.setItem(ADMIN_PIN_KEY, newPin);
-      newPinInput.value = '';
-      showToast("Đã đổi mã PIN Admin thành công!", "success");
+
+      saveNewPinBtn.disabled = true;
+      saveNewPinBtn.textContent = "Đang lưu...";
+
+      try {
+        const newHash = await hashPin(newPin);
+        currentPinHash = newHash;
+        localStorage.setItem(ADMIN_PIN_HASH_KEY, newHash);
+        localStorage.removeItem(OLD_ADMIN_PIN_KEY);
+
+        if (firebaseDb && isFirebaseConnected) {
+          const { ref, set } = window.FirebaseSDK;
+          await set(ref(firebaseDb, "admin_config/pinHash"), newHash);
+          showToast("Đã đổi mã PIN Admin & đồng bộ Cloud cho tất cả thiết bị!", "success");
+        } else {
+          showToast("Đã đổi mã PIN Admin (đã mã hóa an toàn) trên thiết bị này!", "success");
+        }
+        newPinInput.value = '';
+      } catch (err) {
+        console.error("Lỗi đổi PIN:", err);
+        showToast("Lỗi khi lưu mã PIN: " + err.message, "error");
+      } finally {
+        saveNewPinBtn.disabled = false;
+        saveNewPinBtn.textContent = "Đổi PIN";
+      }
     }
 
     function deleteDish(id) {
@@ -2049,7 +2128,10 @@
      * 13. KHỞI TẠO VÀ GẮN SỰ KIỆN
      */
     function init() {
-      // 1. Khởi tạo dữ liệu (Ưu tiên Firebase Realtime nếu đã lưu config, fallback LocalStorage)
+      // 1. Bảo mật mã PIN: Di chuyển PIN cũ sang chuẩn mã hóa SHA-256 an toàn
+      initAdminPinSecurity();
+
+      // 2. Khởi tạo dữ liệu (Ưu tiên Firebase Realtime nếu đã lưu config, fallback LocalStorage)
       initFirebaseIfConfigured();
 
       // 2. Nhận diện giờ hiện tại
