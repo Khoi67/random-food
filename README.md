@@ -1,8 +1,20 @@
 # Hôm Nay Ăn Gì Ở TP.HCM? - Vòng Quay May Mắn Ẩm Thực Sài Gòn (Cloud Sync) 🍜
 
-Ứng dụng web Single-File (HTML5, Tailwind CSS qua CDN, Canvas API, Vanilla JavaScript, Firebase Modular SDK) chạy trực tiếp trong 1 file duy nhất `index.html`. Không cần NodeJS, không cần build step, sẵn sàng deploy ngay lên Vercel.
+Ứng dụng web hiện đại (Vite, HTML5, Tailwind CSS, Canvas API, Firebase Modular SDK) được tái cấu trúc theo mô-đun hóa rõ ràng, hiệu năng cao, hỗ trợ Hot Reload và sẵn sàng deploy tự động lên Vercel.
 
 ---
+
+## 💻 Chạy Ứng Dụng Ở Local (Vite Dev Server)
+
+```bash
+# 1. Cài đặt thư viện phụ thuộc (nếu chưa có)
+npm install
+
+# 2. Khởi động máy chủ phát triển
+npm run dev
+```
+Truy cập: `http://localhost:5173/`
+
 
 ## ✨ Điểm Mới: Hỗ Trợ Dùng Chung Realtime Qua Firebase
 

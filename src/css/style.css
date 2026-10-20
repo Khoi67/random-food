@@ -1,0 +1,59 @@
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f97316;
+}
+
+/* Modal transition styles */
+.modal-backdrop {
+  transition: opacity 0.3s ease-out;
+}
+
+.modal-content {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-enter {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-enter .modal-content {
+  transform: scale(0.9) translateY(20px);
+}
+
+.modal-show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-show .modal-content {
+  transform: scale(1) translateY(0);
+}
+
+/* Wheel Pointer Shadow */
+.wheel-pointer {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 8px rgba(234, 88, 12, 0.7));
+}
+
+/* Glowing button */
+.glow-effect {
+  box-shadow: 0 0 25px -5px rgba(249, 115, 22, 0.5), 0 0 10px -6px rgba(249, 115, 22, 0.5);
+}
+
+.glow-effect:hover {
+  box-shadow: 0 0 35px 0px rgba(249, 115, 22, 0.75), 0 0 15px -3px rgba(249, 115, 22, 0.6);
+}
