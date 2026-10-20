@@ -1006,7 +1006,7 @@
     /**
      * 1. FIREBASE REALTIME DATABASE SYNC ENGINE
      */
-    function initFirebaseIfConfigured() {
+    async function initFirebaseIfConfigured() {
       let configObj = null;
       const savedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
 
@@ -1019,9 +1019,23 @@
 
       if (savedConfig) {
         configObj = parseFirebaseConfig(savedConfig);
-      } else if (typeof DEFAULT_FIREBASE_CONFIG === 'object' && DEFAULT_FIREBASE_CONFIG.databaseURL) {
-        // Tự động kết nối với cấu hình Firebase mặc định của dự án
-        configObj = DEFAULT_FIREBASE_CONFIG;
+      } else {
+        // Thử lấy cấu hình từ Vercel Environment Variables (/api/config)
+        try {
+          const res = await fetch('/api/config');
+          if (res.ok) {
+            const apiConfig = await res.json();
+            if (apiConfig && apiConfig.databaseURL && apiConfig.apiKey) {
+              configObj = apiConfig;
+            }
+          }
+        } catch (err) {
+          // Khi chạy offline hoặc không có serverless
+        }
+
+        if (!configObj && typeof DEFAULT_FIREBASE_CONFIG === 'object' && DEFAULT_FIREBASE_CONFIG?.databaseURL) {
+          configObj = DEFAULT_FIREBASE_CONFIG;
+        }
       }
 
       if (!configObj || !configObj.databaseURL) {
