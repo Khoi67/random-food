@@ -44,6 +44,16 @@ Khi nhiều người cùng truy cập ứng dụng chia sẻ Firebase, các thao
 
 ---
 
+## ⭐ Hệ Thống Đánh Giá & Review Món Ăn (Realtime Foodie Reviews)
+
+Mỗi món ăn trong thực đơn đều được trang bị hệ thống đánh giá tương tác:
+- **Xem điểm số & Review**: Bấm vào nút `⭐ Đánh giá` ở từng món hoặc bấm `⭐ Xem review 💬` ngay trên popup sau khi quay trúng món.
+- **Dữ liệu mẫu chân thực**: Tích hợp sẵn hàng chục bình luận, chia sẻ quán ngon tâm đắc từ các tín đồ ẩm thực Sài Gòn (Ba Ghiền, Huỳnh Hoa, Phở Lệ, Út Hưng, Ốc Đào...).
+- **Gửi đánh giá mới**: Chọn từ 1 đến 5 sao với hiệu ứng chọn sao trực quan, để lại tên và cảm nhận. 
+- **Đồng bộ tự động**: Đánh giá mới sẽ được đồng bộ tức thì lên Firebase Realtime Database và lưu cache vào `localStorage`.
+
+---
+
 ## 🛡️ Cơ Chế Bảo Vệ Hạn Mức Free (Anti-Spam & Quota Shield)
 
 Để ứng dụng luôn hoạt động mượt mà và **không bao giờ vượt quá hạn ngạch miễn phí** của Firebase và Vercel:

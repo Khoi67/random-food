@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="vi" class="h-full">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hôm Nay Ăn Gì Ở TP.HCM? - Vòng Quay May Mắn Ẩm Thực Sài Gòn (Cloud Sync)</title>
-  <meta name="description" content="Vòng quay may mắn chọn món ăn sáng, trưa, tối chuẩn vị TP.HCM kèm danh sách địa chỉ quán nổi tiếng và chỉ đường Google Maps nhanh chóng. Đồng bộ đám mây Realtime!">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍜</text></svg>">
+  <meta name="description"
+    content="Vòng quay may mắn chọn món ăn sáng, trưa, tối chuẩn vị TP.HCM kèm danh sách địa chỉ quán nổi tiếng và chỉ đường Google Maps nhanh chóng. Đồng bộ đám mây Realtime!">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍜</text></svg>">
 
   <!-- Google Fonts: Be Vietnam Pro -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
 
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -76,13 +80,16 @@
       width: 6px;
       height: 6px;
     }
+
     ::-webkit-scrollbar-track {
       background: #0f172a;
     }
+
     ::-webkit-scrollbar-thumb {
       background: #334155;
       border-radius: 9999px;
     }
+
     ::-webkit-scrollbar-thumb:hover {
       background: #f97316;
     }
@@ -91,39 +98,47 @@
     .modal-backdrop {
       transition: opacity 0.3s ease-out;
     }
+
     .modal-content {
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
     .modal-enter {
       opacity: 0;
       pointer-events: none;
     }
+
     .modal-enter .modal-content {
       transform: scale(0.9) translateY(20px);
     }
+
     .modal-show {
       opacity: 1;
       pointer-events: auto;
     }
+
     .modal-show .modal-content {
       transform: scale(1) translateY(0);
     }
 
     /* Wheel Pointer Shadow */
     .wheel-pointer {
-      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(234, 88, 12, 0.7));
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 8px rgba(234, 88, 12, 0.7));
     }
 
     /* Glowing button */
     .glow-effect {
       box-shadow: 0 0 25px -5px rgba(249, 115, 22, 0.5), 0 0 10px -6px rgba(249, 115, 22, 0.5);
     }
+
     .glow-effect:hover {
       box-shadow: 0 0 35px 0px rgba(249, 115, 22, 0.75), 0 0 15px -3px rgba(249, 115, 22, 0.6);
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+<body
+  class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
 
   <!-- Background decorative light gradients -->
   <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
@@ -136,59 +151,76 @@
   <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-500 to-rose-500 flex items-center justify-center shadow-lg shadow-brand-500/30 text-2xl">
+        <div
+          class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-500 to-rose-500 flex items-center justify-center shadow-lg shadow-brand-500/30 text-2xl">
           🍜
         </div>
         <div>
           <div class="flex items-center space-x-2">
-            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-brand-300 bg-clip-text text-transparent">
+            <h1
+              class="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-brand-300 bg-clip-text text-transparent">
               Hôm Nay Ăn Gì Ở TP.HCM?
             </h1>
-            <span class="text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-full hidden sm:inline-block">
+            <span
+              class="text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-full hidden sm:inline-block">
               Sài Gòn Food
             </span>
           </div>
-          <p class="text-xs text-slate-400 font-medium hidden sm:block">Vòng quay may mắn chọn món & gợi ý quán ngon nức tiếng tại TP.HCM</p>
+          <p class="text-xs text-slate-400 font-medium hidden sm:block">Vòng quay may mắn chọn món & gợi ý quán ngon nức
+            tiếng tại TP.HCM</p>
         </div>
       </div>
 
       <!-- Live Clock & Controls -->
       <div class="flex items-center space-x-2 sm:space-x-3">
         <!-- Live Clock -->
-        <div id="currentTimeBadge" class="hidden sm:flex items-center space-x-2 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-full text-xs font-medium text-slate-300">
+        <div id="currentTimeBadge"
+          class="hidden sm:flex items-center space-x-2 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-full text-xs font-medium text-slate-300">
           <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span id="liveClockText">--:--:--</span>
         </div>
 
         <!-- Cloud Sync Status / Config Button -->
-        <button id="openFirebaseModalBtn" class="flex items-center space-x-1.5 text-xs px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border transition cursor-pointer bg-slate-800/80 border-slate-700 text-slate-300 hover:border-brand-500 hover:text-white" title="Cài đặt kết nối Firebase để dùng chung Realtime">
+        <button id="openFirebaseModalBtn"
+          class="flex items-center space-x-1.5 text-xs px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border transition cursor-pointer bg-slate-800/80 border-slate-700 text-slate-300 hover:border-brand-500 hover:text-white"
+          title="Cài đặt kết nối Firebase để dùng chung Realtime">
           <span id="cloudStatusDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
           <span id="cloudStatusText" class="font-medium hidden md:inline">Đồng bộ Cloud</span>
           <svg class="w-3.5 h-3.5 text-brand-400 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
         </button>
 
         <!-- Sound Toggle Button -->
-        <button id="toggleSoundBtn" title="Bật/Tắt âm thanh quay" class="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700 hover:border-slate-500 hover:text-white text-slate-300 flex items-center justify-center transition cursor-pointer">
+        <button id="toggleSoundBtn" title="Bật/Tắt âm thanh quay"
+          class="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700 hover:border-slate-500 hover:text-white text-slate-300 flex items-center justify-center transition cursor-pointer">
           <svg id="soundOnIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
           </svg>
-          <svg id="soundOffIcon" class="w-4 h-4 hidden text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          <svg id="soundOffIcon" class="w-4 h-4 hidden text-slate-500" fill="none" stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
           </svg>
         </button>
 
         <!-- Admin Mode Toggle / Status Button -->
-        <button id="adminLockBtn" class="text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 sm:py-2 rounded-xl border border-slate-700 transition flex items-center space-x-1.5 cursor-pointer" title="Quản trị viên (Nhập mã PIN để mở khóa xóa / khôi phục)">
+        <button id="adminLockBtn"
+          class="text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 sm:py-2 rounded-xl border border-slate-700 transition flex items-center space-x-1.5 cursor-pointer"
+          title="Quản trị viên (Nhập mã PIN để mở khóa xóa / khôi phục)">
           <span id="adminLockIcon">🔒</span>
           <span id="adminLockText" class="font-medium hidden sm:inline">Khách</span>
         </button>
 
         <!-- Reset Default Data Button -->
-        <button id="resetDefaultsBtn" class="text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-2 rounded-xl border border-slate-700 transition flex items-center space-x-1.5 cursor-pointer" title="Khôi phục lại danh sách món mẫu chuẩn TP.HCM (Yêu cầu quyền Admin)">
+        <button id="resetDefaultsBtn"
+          class="text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-2 rounded-xl border border-slate-700 transition flex items-center space-x-1.5 cursor-pointer"
+          title="Khôi phục lại danh sách món mẫu chuẩn TP.HCM (Yêu cầu quyền Admin)">
           <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           <span class="hidden lg:inline font-medium">Khôi phục mẫu</span>
         </button>
@@ -201,26 +233,30 @@
 
     <!-- Meal Tabs Filter Section -->
     <div class="mb-8">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/80 border border-slate-800 p-2 sm:p-2.5 rounded-2xl backdrop-blur-md">
-        
+      <div
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/80 border border-slate-800 p-2 sm:p-2.5 rounded-2xl backdrop-blur-md">
+
         <!-- Tab Buttons (Sáng, Trưa, Tối) -->
         <div class="grid grid-cols-3 gap-1.5 sm:gap-2 w-full sm:w-auto">
           <!-- Tab Sáng -->
-          <button data-meal="sang" class="meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200">
+          <button data-meal="sang"
+            class="meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200">
             <span class="text-base sm:text-lg">🌅</span>
             <span>Bữa Sáng</span>
             <span class="meal-count-badge text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">0</span>
           </button>
 
           <!-- Tab Trưa -->
-          <button data-meal="trua" class="meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200">
+          <button data-meal="trua"
+            class="meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200">
             <span class="text-base sm:text-lg">☀️</span>
             <span>Bữa Trưa</span>
             <span class="meal-count-badge text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">0</span>
           </button>
 
           <!-- Tab Chiều/Tối -->
-          <button data-meal="toi" class="meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200">
+          <button data-meal="toi"
+            class="meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200">
             <span class="text-base sm:text-lg">🌙</span>
             <span>Chiều / Tối</span>
             <span class="meal-count-badge text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">0</span>
@@ -229,9 +265,12 @@
 
         <!-- Auto detected hint & Cloud indicator -->
         <div class="flex items-center gap-2">
-          <div id="mealDetectHint" class="flex items-center justify-center sm:justify-end text-xs text-brand-300/90 font-medium px-2.5 py-1 bg-brand-500/10 border border-brand-500/20 rounded-xl">
-            <svg class="w-3.5 h-3.5 mr-1.5 text-brand-400 animate-spin" style="animation-duration: 8s;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div id="mealDetectHint"
+            class="flex items-center justify-center sm:justify-end text-xs text-brand-300/90 font-medium px-2.5 py-1 bg-brand-500/10 border border-brand-500/20 rounded-xl">
+            <svg class="w-3.5 h-3.5 mr-1.5 text-brand-400 animate-spin" style="animation-duration: 8s;" fill="none"
+              stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span id="autoActiveText">Đang tự động nhận diện theo giờ...</span>
           </div>
@@ -245,14 +284,16 @@
 
       <!-- LEFT: The Wheel Stage (Mobile order 1, Desktop col-span-7) -->
       <div class="lg:col-span-7 flex flex-col items-center">
-        
+
         <!-- Wheel Outer Card -->
-        <div class="w-full relative flex flex-col items-center bg-slate-900/60 border border-slate-800/80 rounded-3xl p-4 sm:p-8 backdrop-blur-md shadow-2xl">
-          
+        <div
+          class="w-full relative flex flex-col items-center bg-slate-900/60 border border-slate-800/80 rounded-3xl p-4 sm:p-8 backdrop-blur-md shadow-2xl">
+
           <!-- Wheel Title / Quick Info -->
           <div class="w-full flex items-center justify-between mb-4">
             <div>
-              <span class="text-xs uppercase tracking-wider font-bold text-brand-400 block mb-0.5" id="currentMealSubheading">Bữa Ăn TP.HCM</span>
+              <span class="text-xs uppercase tracking-wider font-bold text-brand-400 block mb-0.5"
+                id="currentMealSubheading">Bữa Ăn TP.HCM</span>
               <h2 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2" id="currentMealHeading">
                 Vòng Quay Ẩm Thực Sài Gòn
               </h2>
@@ -264,15 +305,17 @@
           </div>
 
           <!-- The Wheel & Pointer Wrapper -->
-          <div class="relative w-full max-w-[360px] sm:max-w-[430px] md:max-w-[460px] aspect-square my-2 flex items-center justify-center select-none">
-            
+          <div
+            class="relative w-full max-w-[360px] sm:max-w-[430px] md:max-w-[460px] aspect-square my-2 flex items-center justify-center select-none">
+
             <!-- Pointer (Kim chỉ vị trí ở trên đỉnh, hướng xuống tâm) -->
             <div class="absolute -top-3 z-30 pointer-events-none transform -translate-x-1/2 left-1/2 wheel-pointer">
               <svg width="46" height="56" viewBox="0 0 46 56" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <!-- Drop shadow path -->
-                <path d="M23 54L6 14C4.5 10 7.5 5 12 5H34C38.5 5 41.5 10 40 14L23 54Z" fill="url(#pointerGradient)" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M23 54L6 14C4.5 10 7.5 5 12 5H34C38.5 5 41.5 10 40 14L23 54Z" fill="url(#pointerGradient)"
+                  stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round" />
                 <!-- Inner golden accent -->
-                <circle cx="23" cy="16" r="6" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/>
+                <circle cx="23" cy="16" r="6" fill="#fef08a" stroke="#ca8a04" stroke-width="2" />
                 <defs>
                   <linearGradient id="pointerGradient" x1="23" y1="5" x2="23" y2="54" gradientUnits="userSpaceOnUse">
                     <stop stop-color="#ef4444" />
@@ -284,15 +327,22 @@
             </div>
 
             <!-- Outer Glow ring behind canvas -->
-            <div class="absolute inset-2 sm:inset-3 rounded-full bg-gradient-to-tr from-brand-500/20 via-rose-500/10 to-amber-500/20 blur-xl pointer-events-none"></div>
+            <div
+              class="absolute inset-2 sm:inset-3 rounded-full bg-gradient-to-tr from-brand-500/20 via-rose-500/10 to-amber-500/20 blur-xl pointer-events-none">
+            </div>
 
             <!-- HTML5 Canvas for the Lucky Wheel -->
-            <canvas id="wheelCanvas" class="w-full h-full cursor-pointer rounded-full relative z-10 transition-transform"></canvas>
+            <canvas id="wheelCanvas"
+              class="w-full h-full cursor-pointer rounded-full relative z-10 transition-transform"></canvas>
 
             <!-- Center Spin Button (Nút quay ở tâm bánh xe) -->
-            <button id="centerSpinBtn" class="absolute z-20 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-amber-500 via-brand-500 to-rose-600 border-4 border-slate-900 shadow-2xl flex flex-col items-center justify-center text-white hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer group" title="Bấm để quay">
-              <svg class="w-6 h-6 group-hover:rotate-45 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <button id="centerSpinBtn"
+              class="absolute z-20 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-amber-500 via-brand-500 to-rose-600 border-4 border-slate-900 shadow-2xl flex flex-col items-center justify-center text-white hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer group"
+              title="Bấm để quay">
+              <svg class="w-6 h-6 group-hover:rotate-45 transition-transform duration-300" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               <span class="text-[10px] sm:text-[11px] font-black tracking-wider uppercase">Quay</span>
             </button>
@@ -301,7 +351,8 @@
 
           <!-- Bottom Big Spin Button -->
           <div class="w-full mt-4 flex flex-col items-center">
-            <button id="mainSpinBtn" class="w-full max-w-sm py-4 px-8 rounded-2xl bg-gradient-to-r from-brand-500 via-rose-500 to-amber-500 hover:from-brand-600 hover:via-rose-600 hover:to-amber-600 text-white font-extrabold text-lg sm:text-xl tracking-wide shadow-xl glow-effect transition-all transform active:scale-98 flex items-center justify-center space-x-3 cursor-pointer">
+            <button id="mainSpinBtn"
+              class="w-full max-w-sm py-4 px-8 rounded-2xl bg-gradient-to-r from-brand-500 via-rose-500 to-amber-500 hover:from-brand-600 hover:via-rose-600 hover:to-amber-600 text-white font-extrabold text-lg sm:text-xl tracking-wide shadow-xl glow-effect transition-all transform active:scale-98 flex items-center justify-center space-x-3 cursor-pointer">
               <span class="text-2xl">🎲</span>
               <span>QUAY NGAY HÔM NAY!</span>
             </button>
@@ -328,25 +379,32 @@
               </span>
               <span>Thêm Món Ăn & Quán TP.HCM</span>
             </h3>
-            <span id="dataSaveModeBadge" class="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">LocalStorage</span>
+            <span id="dataSaveModeBadge"
+              class="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">LocalStorage</span>
           </div>
 
           <form id="addDishForm" class="space-y-4">
             <!-- Tên món ăn -->
             <div>
-              <label for="dishNameInput" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label for="dishNameInput"
+                class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                 Tên Món Ăn <span class="text-rose-400">*</span>
               </label>
-              <input type="text" id="dishNameInput" required placeholder="VD: Bún mắm, Bánh mì chảo, Chè mâm..." class="w-full bg-slate-950/70 border border-slate-700/80 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-white rounded-xl px-3.5 py-2.5 text-sm placeholder:text-slate-500 outline-none transition">
+              <input type="text" id="dishNameInput" required placeholder="VD: Bún mắm, Bánh mì chảo, Chè mâm..."
+                class="w-full bg-slate-950/70 border border-slate-700/80 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-white rounded-xl px-3.5 py-2.5 text-sm placeholder:text-slate-500 outline-none transition">
             </div>
 
             <!-- Danh sách địa chỉ / quán ăn tại TP.HCM (Textarea) -->
             <div>
-              <label for="dishLocationsInput" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label for="dishLocationsInput"
+                class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                 Danh Sách Quán & Địa Chỉ Tại TP.HCM <span class="text-rose-400">*</span>
               </label>
-              <textarea id="dishLocationsInput" rows="3" required placeholder="Mỗi dòng một quán ăn & địa chỉ tại TP.HCM. Ví dụ:&#10;Quán Ăn A - 123 Nguyễn Trãi, P.3, Quận 5&#10;Quán B - 45 Lê Văn Sỹ, Phường 13, Phú Nhuận" class="w-full bg-slate-950/70 border border-slate-700/80 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-white rounded-xl p-3 text-xs placeholder:text-slate-500 outline-none transition leading-relaxed"></textarea>
-              <p class="text-[11px] text-slate-400 mt-1">💡 Nhập mỗi dòng 1 quán. Sau khi quay trúng, người dùng sẽ chọn được từng quán để mở Google Maps.</p>
+              <textarea id="dishLocationsInput" rows="3" required
+                placeholder="Mỗi dòng một quán ăn & địa chỉ tại TP.HCM. Ví dụ:&#10;Quán Ăn A - 123 Nguyễn Trãi, P.3, Quận 5&#10;Quán B - 45 Lê Văn Sỹ, Phường 13, Phú Nhuận"
+                class="w-full bg-slate-950/70 border border-slate-700/80 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-white rounded-xl p-3 text-xs placeholder:text-slate-500 outline-none transition leading-relaxed"></textarea>
+              <p class="text-[11px] text-slate-400 mt-1">💡 Nhập mỗi dòng 1 quán. Sau khi quay trúng, người dùng sẽ chọn
+                được từng quán để mở Google Maps.</p>
             </div>
 
             <!-- Chọn Bữa Ăn (Checkboxes: Sáng, Trưa, Tối) -->
@@ -356,25 +414,32 @@
               </label>
               <div class="grid grid-cols-3 gap-2">
                 <!-- Checkbox Sáng -->
-                <label class="flex items-center space-x-2 bg-slate-950/50 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl cursor-pointer transition select-none">
-                  <input type="checkbox" name="mealCheck" value="sang" class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-slate-800 border-slate-700 accent-brand-500">
+                <label
+                  class="flex items-center space-x-2 bg-slate-950/50 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl cursor-pointer transition select-none">
+                  <input type="checkbox" name="mealCheck" value="sang"
+                    class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-slate-800 border-slate-700 accent-brand-500">
                   <span class="text-xs font-medium text-slate-200">Sáng</span>
                 </label>
                 <!-- Checkbox Trưa -->
-                <label class="flex items-center space-x-2 bg-slate-950/50 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl cursor-pointer transition select-none">
-                  <input type="checkbox" name="mealCheck" value="trua" class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-slate-800 border-slate-700 accent-brand-500">
+                <label
+                  class="flex items-center space-x-2 bg-slate-950/50 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl cursor-pointer transition select-none">
+                  <input type="checkbox" name="mealCheck" value="trua"
+                    class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-slate-800 border-slate-700 accent-brand-500">
                   <span class="text-xs font-medium text-slate-200">Trưa</span>
                 </label>
                 <!-- Checkbox Tối -->
-                <label class="flex items-center space-x-2 bg-slate-950/50 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl cursor-pointer transition select-none">
-                  <input type="checkbox" name="mealCheck" value="toi" class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-slate-800 border-slate-700 accent-brand-500">
+                <label
+                  class="flex items-center space-x-2 bg-slate-950/50 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl cursor-pointer transition select-none">
+                  <input type="checkbox" name="mealCheck" value="toi"
+                    class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-slate-800 border-slate-700 accent-brand-500">
                   <span class="text-xs font-medium text-slate-200">Chiều/Tối</span>
                 </label>
               </div>
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" class="w-full bg-slate-800 hover:bg-brand-500 text-white font-bold py-2.5 px-4 rounded-xl border border-slate-700 hover:border-brand-400 transition-all flex items-center justify-center space-x-2 text-sm shadow cursor-pointer">
+            <button type="submit"
+              class="w-full bg-slate-800 hover:bg-brand-500 text-white font-bold py-2.5 px-4 rounded-xl border border-slate-700 hover:border-brand-400 transition-all flex items-center justify-center space-x-2 text-sm shadow cursor-pointer">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
@@ -384,26 +449,33 @@
         </div>
 
         <!-- Danh Sách Món Ăn Hiện Tại -->
-        <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 sm:p-6 backdrop-blur-md shadow-xl flex flex-col">
+        <div
+          class="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 sm:p-6 backdrop-blur-md shadow-xl flex flex-col">
           <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
             <div>
               <h3 class="text-base font-bold text-white flex items-center space-x-2">
                 <span class="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </span>
                 <span>Thực Đơn: <span id="currentListCategoryName" class="text-brand-400">Bữa Sáng</span></span>
               </h3>
             </div>
-            <span id="currentListTotalBadge" class="text-xs bg-slate-800 text-slate-300 font-semibold px-2.5 py-1 rounded-full border border-slate-700">0 món</span>
+            <span id="currentListTotalBadge"
+              class="text-xs bg-slate-800 text-slate-300 font-semibold px-2.5 py-1 rounded-full border border-slate-700">0
+              món</span>
           </div>
 
           <!-- Quick Search Filter in List -->
           <div class="mb-3 relative">
-            <input type="text" id="searchDishInput" placeholder="Tìm nhanh món hoặc quán tại TP.HCM..." class="w-full bg-slate-950/60 border border-slate-800 focus:border-slate-600 rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-slate-500 outline-none">
-            <svg class="w-3.5 h-3.5 text-slate-500 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <input type="text" id="searchDishInput" placeholder="Tìm nhanh món hoặc quán tại TP.HCM..."
+              class="w-full bg-slate-950/60 border border-slate-800 focus:border-slate-600 rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-slate-500 outline-none">
+            <svg class="w-3.5 h-3.5 text-slate-500 absolute right-3 top-2.5" fill="none" stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
 
@@ -416,7 +488,8 @@
           <div id="emptyListState" class="hidden py-10 flex flex-col items-center justify-center text-center">
             <span class="text-4xl mb-2">🍽️</span>
             <p class="text-sm font-semibold text-slate-300">Chưa có món nào cho bữa này</p>
-            <p class="text-xs text-slate-500 max-w-xs mt-1">Hãy thêm món mới hoặc bấm "Khôi phục mẫu" ở góc trên bên phải.</p>
+            <p class="text-xs text-slate-500 max-w-xs mt-1">Hãy thêm món mới hoặc bấm "Khôi phục mẫu" ở góc trên bên
+              phải.</p>
           </div>
 
         </div>
@@ -436,17 +509,21 @@
   </footer>
 
   <!-- ==================== MODAL KẾT QUẢ QUAY THƯỞNG KÈM DANH SÁCH ĐỊA CHỈ ==================== -->
-  <div id="resultModal" class="modal-backdrop modal-enter fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-    
+  <div id="resultModal"
+    class="modal-backdrop modal-enter fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+
     <!-- Modal Card -->
-    <div class="modal-content w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
-      
+    <div
+      class="modal-content w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+
       <!-- Top Decorative Glow -->
       <div class="absolute -top-16 -left-16 w-48 h-48 bg-brand-500/25 rounded-full blur-2xl pointer-events-none"></div>
       <div class="absolute -top-16 -right-16 w-48 h-48 bg-rose-500/25 rounded-full blur-2xl pointer-events-none"></div>
 
       <!-- Close Button -->
-      <button id="closeModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/80 transition cursor-pointer z-10" title="Đóng popup">
+      <button id="closeModalBtn"
+        class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/80 transition cursor-pointer z-10"
+        title="Đóng popup">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -454,27 +531,37 @@
 
       <!-- Content -->
       <div class="flex flex-col items-center text-center mt-1 flex-shrink-0">
-        
+
         <!-- Big Winner Icon Badge -->
-        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-500 to-rose-500 p-0.5 shadow-xl shadow-brand-500/20 mb-3 animate-bounce-subtle">
+        <div
+          class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-500 to-rose-500 p-0.5 shadow-xl shadow-brand-500/20 mb-3 animate-bounce-subtle">
           <div class="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center text-3xl">
             🎉
           </div>
         </div>
 
-        <span class="text-[11px] font-bold uppercase tracking-widest text-amber-400 px-3 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 mb-1.5">
+        <span
+          class="text-[11px] font-bold uppercase tracking-widest text-amber-400 px-3 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 mb-1.5">
           VŨ TRỤ ĐÃ CHỌN CHO BẠN
         </span>
 
         <!-- Tên món ăn trúng thưởng -->
-        <h2 id="modalDishName" class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-amber-200 mb-1 px-2">
+        <h2 id="modalDishName"
+          class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-amber-200 mb-1 px-2">
           Cơm Tấm Sài Gòn
         </h2>
 
-        <!-- Bữa ăn badge -->
-        <span id="modalMealBadge" class="text-xs text-brand-300 font-semibold mb-3 inline-flex items-center">
-          🌅 Món ăn Bữa Sáng tại TP.HCM
-        </span>
+        <!-- Bữa ăn badge & Rating Badge -->
+        <div class="flex items-center justify-center flex-wrap gap-2 mb-3">
+          <span id="modalMealBadge" class="text-xs text-brand-300 font-semibold inline-flex items-center">
+            🌅 Món ăn Bữa Sáng tại TP.HCM
+          </span>
+          <button id="modalOpenReviewBtn" type="button" class="inline-flex items-center space-x-1.5 text-xs text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1 rounded-full border border-amber-500/30 transition cursor-pointer shadow-sm hover:scale-105 active:scale-95" title="Xem & Viết đánh giá cho món này">
+            <span>⭐</span>
+            <span id="modalRatingScore" class="font-bold">4.9/5</span>
+            <span id="modalReviewCount" class="text-[11px] text-amber-200/80">(Xem review 💬)</span>
+          </button>
+        </div>
       </div>
 
       <!-- Danh sách các quán & địa chỉ gợi ý tại TP.HCM (Cuộn mượt mà) -->
@@ -482,8 +569,10 @@
         <div class="flex items-center justify-between text-xs text-slate-400 px-1 pb-1 border-b border-slate-800">
           <span class="font-semibold text-slate-300 flex items-center gap-1.5">
             <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             <span>Top Quán Ngon Gợi Ý Tại TP.HCM:</span>
           </span>
@@ -499,20 +588,25 @@
       <!-- Buttons CTA -->
       <div class="w-full space-y-2 mt-3 pt-3 border-t border-slate-800 flex-shrink-0">
         <!-- Quick Nearby Search on Maps Button -->
-        <a id="modalNearbySearchLink" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-4 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-sky-300 hover:text-white font-semibold text-xs border border-sky-500/30 flex items-center justify-center space-x-1.5 transition">
+        <a id="modalNearbySearchLink" href="#" target="_blank" rel="noopener noreferrer"
+          class="w-full py-2.5 px-4 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-sky-300 hover:text-white font-semibold text-xs border border-sky-500/30 flex items-center justify-center space-x-1.5 transition">
           <svg class="w-4 h-4 text-sky-400" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/>
+            <path
+              d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" />
           </svg>
           <span>Tìm thêm quán món này gần tôi nhất trên Google Maps</span>
           <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
         </a>
 
         <!-- Spin Again Button -->
-        <button id="modalSpinAgainBtn" class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-brand-500 to-rose-500 hover:from-brand-600 hover:to-rose-600 text-white font-extrabold text-sm shadow-lg shadow-brand-500/25 transition flex items-center justify-center space-x-2 cursor-pointer">
+        <button id="modalSpinAgainBtn"
+          class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-brand-500 to-rose-500 hover:from-brand-600 hover:to-rose-600 text-white font-extrabold text-sm shadow-lg shadow-brand-500/25 transition flex items-center justify-center space-x-2 cursor-pointer">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           <span>Quay tiếp món khác</span>
         </button>
@@ -522,11 +616,15 @@
   </div>
 
   <!-- ==================== MODAL CẤU HÌNH FIREBASE REALTIME DÙNG CHUNG ==================== -->
-  <div id="firebaseModal" class="modal-backdrop modal-enter fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-    <div class="modal-content w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 shadow-2xl relative">
-      
+  <div id="firebaseModal"
+    class="modal-backdrop modal-enter fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div
+      class="modal-content w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 shadow-2xl relative">
+
       <!-- Close Button -->
-      <button id="closeFirebaseModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/80 transition cursor-pointer" title="Đóng">
+      <button id="closeFirebaseModalBtn"
+        class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/80 transition cursor-pointer"
+        title="Đóng">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -546,25 +644,35 @@
         <div class="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 text-slate-300 space-y-1">
           <p class="font-semibold text-brand-300">📖 3 bước cấu hình Firebase (Hoàn toàn Miễn phí):</p>
           <ol class="list-decimal list-inside space-y-0.5 text-[11px] text-slate-400 pl-1">
-            <li>Vào <a href="https://console.firebase.google.com" target="_blank" class="text-sky-400 underline font-semibold">Firebase Console</a> ➔ Tạo Project mới.</li>
+            <li>Vào <a href="https://console.firebase.google.com" target="_blank"
+                class="text-sky-400 underline font-semibold">Firebase Console</a> ➔ Tạo Project mới.</li>
             <li>Vào <b>Build ➔ Realtime Database</b> ➔ <b>Create Database</b> (chọn chế độ <i>Test Mode</i>).</li>
-            <li>Vào <b>Project Settings</b> (icon bánh răng) ➔ Kéo xuống mục <i>Your apps</i> ➔ Thêm Web App <code class="text-amber-300">&lt;/&gt;</code> để lấy đoạn mã <code class="text-amber-300">firebaseConfig</code>.</li>
+            <li>Vào <b>Project Settings</b> (icon bánh răng) ➔ Kéo xuống mục <i>Your apps</i> ➔ Thêm Web App <code
+                class="text-amber-300">&lt;/&gt;</code> để lấy đoạn mã <code
+                class="text-amber-300">firebaseConfig</code>.</li>
           </ol>
         </div>
 
         <div>
-          <label for="firebaseConfigTextarea" class="block font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+          <label for="firebaseConfigTextarea"
+            class="block font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
             Dán đoạn mã <code class="text-brand-400 lowercase">firebaseConfig</code> vào đây:
           </label>
-          <textarea id="firebaseConfigTextarea" rows="6" placeholder='const firebaseConfig = {&#10;  apiKey: "AIzaSy...",&#10;  authDomain: "my-app.firebaseapp.com",&#10;  databaseURL: "https://my-app-default-rtdb.firebaseio.com",&#10;  projectId: "my-app",&#10;  storageBucket: "...",&#10;  messagingSenderId: "...",&#10;  appId: "..."&#10;};' class="w-full font-mono text-[11px] bg-slate-950/80 border border-slate-700 focus:border-brand-500 rounded-xl p-3 text-slate-200 outline-none transition leading-relaxed"></textarea>
-          <p class="text-[11px] text-slate-400 mt-1">💡 Bạn có thể dán cả đoạn <code class="text-slate-300">const firebaseConfig = { ... }</code> hoặc dạng JSON <code class="text-slate-300">{ "apiKey": "..." }</code>.</p>
+          <textarea id="firebaseConfigTextarea" rows="6"
+            placeholder='const firebaseConfig = {&#10;  apiKey: "AIzaSy...",&#10;  authDomain: "my-app.firebaseapp.com",&#10;  databaseURL: "https://my-app-default-rtdb.firebaseio.com",&#10;  projectId: "my-app",&#10;  storageBucket: "...",&#10;  messagingSenderId: "...",&#10;  appId: "..."&#10;};'
+            class="w-full font-mono text-[11px] bg-slate-950/80 border border-slate-700 focus:border-brand-500 rounded-xl p-3 text-slate-200 outline-none transition leading-relaxed"></textarea>
+          <p class="text-[11px] text-slate-400 mt-1">💡 Bạn có thể dán cả đoạn <code
+              class="text-slate-300">const firebaseConfig = { ... }</code> hoặc dạng JSON <code
+              class="text-slate-300">{ "apiKey": "..." }</code>.</p>
         </div>
 
         <div class="flex items-center justify-between pt-2 gap-2">
-          <button id="disconnectFirebaseBtn" type="button" class="px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-rose-950/60 hover:border-rose-700/60 text-slate-300 hover:text-rose-200 font-semibold transition cursor-pointer">
+          <button id="disconnectFirebaseBtn" type="button"
+            class="px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-rose-950/60 hover:border-rose-700/60 text-slate-300 hover:text-rose-200 font-semibold transition cursor-pointer">
             Ngắt kết nối (dùng LocalStorage)
           </button>
-          <button id="saveFirebaseConfigBtn" type="button" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-brand-500 hover:from-amber-600 hover:to-brand-600 text-white font-bold transition shadow-lg shadow-amber-500/20 cursor-pointer">
+          <button id="saveFirebaseConfigBtn" type="button"
+            class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-brand-500 hover:from-amber-600 hover:to-brand-600 text-white font-bold transition shadow-lg shadow-amber-500/20 cursor-pointer">
             Lưu & Kết Nối Ngay
           </button>
         </div>
@@ -574,18 +682,23 @@
   </div>
 
   <!-- ==================== MODAL XÁC THỰC QUYỀN ADMIN ==================== -->
-  <div id="adminModal" class="modal-backdrop modal-enter fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-    <div class="modal-content w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 shadow-2xl relative">
-      
+  <div id="adminModal"
+    class="modal-backdrop modal-enter fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div
+      class="modal-content w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 shadow-2xl relative">
+
       <!-- Close Button -->
-      <button id="closeAdminModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/80 transition cursor-pointer" title="Đóng">
+      <button id="closeAdminModalBtn"
+        class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/80 transition cursor-pointer"
+        title="Đóng">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
       <div class="flex flex-col items-center text-center mb-4">
-        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl mb-2">
+        <div
+          class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl mb-2">
           🔐
         </div>
         <h3 class="text-base font-bold text-white">Xác Thực Quyền Quản Trị</h3>
@@ -594,17 +707,21 @@
 
       <form id="adminPinForm" class="space-y-4">
         <div>
-          <label for="adminPinInput" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 text-center">
+          <label for="adminPinInput"
+            class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 text-center">
             Mã PIN Quản Trị
           </label>
-          <input type="password" id="adminPinInput" required placeholder="Nhập mã PIN Admin" class="w-full bg-slate-950/80 border border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-center text-lg tracking-widest font-mono text-white rounded-xl px-4 py-2.5 outline-none transition placeholder:text-slate-600 placeholder:text-xs placeholder:tracking-normal">
+          <input type="password" id="adminPinInput" required placeholder="Nhập mã PIN Admin"
+            class="w-full bg-slate-950/80 border border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-center text-lg tracking-widest font-mono text-white rounded-xl px-4 py-2.5 outline-none transition placeholder:text-slate-600 placeholder:text-xs placeholder:tracking-normal">
         </div>
 
         <div class="flex gap-2">
-          <button id="logoutAdminBtn" type="button" class="hidden flex-1 py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-rose-950/60 hover:text-rose-200 hover:border-rose-700/60 font-semibold text-xs transition cursor-pointer">
+          <button id="logoutAdminBtn" type="button"
+            class="hidden flex-1 py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-rose-950/60 hover:text-rose-200 hover:border-rose-700/60 font-semibold text-xs transition cursor-pointer">
             Đăng xuất Admin
           </button>
-          <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-brand-500 hover:from-amber-600 hover:to-brand-600 text-white font-bold text-xs transition shadow-lg shadow-amber-500/20 cursor-pointer">
+          <button type="submit"
+            class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-brand-500 hover:from-amber-600 hover:to-brand-600 text-white font-bold text-xs transition shadow-lg shadow-amber-500/20 cursor-pointer">
             Xác Nhận Mở Khóa
           </button>
         </div>
@@ -613,12 +730,90 @@
         <div id="changePinSection" class="hidden pt-3 border-t border-slate-800 space-y-2">
           <p class="text-xs font-semibold text-slate-300">Đổi mã PIN mới:</p>
           <div class="flex gap-2">
-            <input type="password" id="newPinInput" placeholder="Mã PIN mới" class="flex-1 bg-slate-950 border border-slate-700 text-xs px-3 py-1.5 rounded-lg text-white outline-none">
-            <button id="saveNewPinBtn" type="button" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg font-semibold transition border border-slate-700 cursor-pointer">
+            <input type="password" id="newPinInput" placeholder="Mã PIN mới"
+              class="flex-1 bg-slate-950 border border-slate-700 text-xs px-3 py-1.5 rounded-lg text-white outline-none">
+            <button id="saveNewPinBtn" type="button"
+              class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg font-semibold transition border border-slate-700 cursor-pointer">
               Đổi PIN
             </button>
           </div>
         </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL XEM & VIẾT ĐÁNH GIÁ (REVIEWS) ==================== -->
+  <div id="reviewModal" class="modal-backdrop modal-enter fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="modal-content w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <!-- Top Decorative Glow -->
+      <div class="absolute -top-16 -left-16 w-40 h-40 bg-amber-500/20 rounded-full blur-2xl pointer-events-none"></div>
+
+      <!-- Close Button -->
+      <button id="closeReviewModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/80 transition cursor-pointer z-10" title="Đóng">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Header with Dish Name & Rating Summary -->
+      <div class="flex items-start justify-between pb-3 border-b border-slate-800 flex-shrink-0 pr-8">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 px-2.5 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 inline-block mb-1">
+            ĐÁNH GIÁ ẨM THỰC SÀI GÒN
+          </span>
+          <h3 id="reviewModalDishName" class="text-xl sm:text-2xl font-black text-white">
+            Cơm Tấm Sài Gòn
+          </h3>
+        </div>
+        <div class="flex flex-col items-end flex-shrink-0">
+          <div class="flex items-center space-x-1 text-amber-400 text-lg font-black">
+            <span>⭐</span>
+            <span id="reviewModalAvgScore">4.9</span>
+            <span class="text-xs text-slate-500 font-normal">/5</span>
+          </div>
+          <span id="reviewModalTotalCount" class="text-[11px] text-slate-400">0 đánh giá</span>
+        </div>
+      </div>
+
+      <!-- Scrollable List of Reviews -->
+      <div class="flex-1 overflow-y-auto my-3 pr-1 space-y-2.5">
+        <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <span>💬 Cảm nhận từ thực khách:</span>
+        </div>
+        
+        <div id="reviewModalList" class="space-y-2.5">
+          <!-- Dynamic reviews rendered here -->
+        </div>
+
+        <div id="emptyReviewState" class="hidden py-8 text-center text-slate-500 text-xs">
+          Chưa có đánh giá nào. Hãy là người đầu tiên chia sẻ cảm nhận!
+        </div>
+      </div>
+
+      <!-- Form Write New Review -->
+      <form id="addReviewForm" class="pt-3 border-t border-slate-800 flex-shrink-0 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-300">Viết đánh giá của bạn:</span>
+          <!-- Interactive Star Rating -->
+          <div id="starRatingSelector" class="flex items-center space-x-1 text-xl select-none cursor-pointer" title="Chọn số sao đánh giá">
+            <span data-star="1" class="star-btn transition transform hover:scale-125 text-amber-400">★</span>
+            <span data-star="2" class="star-btn transition transform hover:scale-125 text-amber-400">★</span>
+            <span data-star="3" class="star-btn transition transform hover:scale-125 text-amber-400">★</span>
+            <span data-star="4" class="star-btn transition transform hover:scale-125 text-amber-400">★</span>
+            <span data-star="5" class="star-btn transition transform hover:scale-125 text-amber-400">★</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input type="text" id="reviewAuthorInput" maxlength="30" placeholder="Tên bạn (Tuỳ chọn)" class="sm:col-span-1 bg-slate-950/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none focus:border-amber-500 transition">
+          <input type="text" id="reviewCommentInput" maxlength="200" required placeholder="Cảm nhận về món ăn, quán ngon tâm đắc..." class="sm:col-span-2 bg-slate-950/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none focus:border-amber-500 transition">
+        </div>
+
+        <button type="submit" id="submitReviewBtn" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-brand-500 hover:from-amber-600 hover:to-brand-600 text-white font-bold text-xs transition shadow-lg shadow-amber-500/20 cursor-pointer flex items-center justify-center space-x-1.5">
+          <span>Gửi Đánh Giá Ngay ✨</span>
+        </button>
       </form>
 
     </div>
@@ -935,7 +1130,7 @@
     const DEFAULT_ADMIN_PIN_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
 
     // Giới hạn chống spam (Bảo vệ hạn mức gói Free của Firebase & Vercel)
-    const ADD_DISH_COOLDOWN_MS = 5000; // 5 giây giãn cách giữa các lần thêm món
+    const ADD_DISH_COOLDOWN_MS = 10000; // 5 giây giãn cách giữa các lần thêm món
     const MAX_SHARED_DISHES = 80;      // Tối đa 80 món trong danh sách dùng chung
     let lastAddDishTimestamp = 0;
 
@@ -1036,6 +1231,30 @@
     const modalLocationsList = document.getElementById('modalLocationsList');
     const modalNearbySearchLink = document.getElementById('modalNearbySearchLink');
     const modalSpinAgainBtn = document.getElementById('modalSpinAgainBtn');
+    const modalOpenReviewBtn = document.getElementById('modalOpenReviewBtn');
+    const modalRatingScore = document.getElementById('modalRatingScore');
+    const modalReviewCount = document.getElementById('modalReviewCount');
+
+    // Review Modal Elements
+    const reviewModal = document.getElementById('reviewModal');
+    const closeReviewModalBtn = document.getElementById('closeReviewModalBtn');
+    const reviewModalDishName = document.getElementById('reviewModalDishName');
+    const reviewModalAvgScore = document.getElementById('reviewModalAvgScore');
+    const reviewModalTotalCount = document.getElementById('reviewModalTotalCount');
+    const reviewModalList = document.getElementById('reviewModalList');
+    const emptyReviewState = document.getElementById('emptyReviewState');
+    const addReviewForm = document.getElementById('addReviewForm');
+    const starRatingSelector = document.getElementById('starRatingSelector');
+    const reviewAuthorInput = document.getElementById('reviewAuthorInput');
+    const reviewCommentInput = document.getElementById('reviewCommentInput');
+    const submitReviewBtn = document.getElementById('submitReviewBtn');
+
+    // Review State Management
+    let currentReviewDish = null;
+    let selectedStarRating = 5;
+    let lastReviewSubmitTimestamp = 0;
+    const REVIEW_COOLDOWN_MS = 4000;
+    const MAX_REVIEWS_PER_DISH = 15;
 
     /**
      * WEB AUDIO API TICK SOUND
@@ -1063,7 +1282,7 @@
 
         osc.start();
         osc.stop(audioCtx.currentTime + 0.04);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     function playWinSound() {
@@ -1085,7 +1304,7 @@
           osc.start(audioCtx.currentTime + i * 0.1);
           osc.stop(audioCtx.currentTime + i * 0.1 + 0.35);
         });
-      } catch (e) {}
+      } catch (e) { }
     }
 
     /**
@@ -1119,7 +1338,7 @@
             if (parsed && parsed.databaseURL && parsed.apiKey) {
               configObj = parsed;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
 
         if (!configObj) {
@@ -1263,7 +1482,7 @@
       if (typeof rawText !== 'string') return null;
       try {
         return JSON.parse(rawText);
-      } catch (e) {}
+      } catch (e) { }
 
       const match = rawText.match(/\{[\s\S]*\}/);
       if (match) {
@@ -1519,9 +1738,9 @@
 
       const pointerAngle = 1.5 * Math.PI; // Kim ở đỉnh 12h
       const sliceCenterInWheel = winningIndex * sliceAngle + (sliceAngle / 2);
-      
+
       const fullRotations = 6 + Math.floor(Math.random() * 3);
-      
+
       const startAngle = currentRotation % (2 * Math.PI);
       let targetDelta = (pointerAngle - sliceCenterInWheel - startAngle);
       while (targetDelta < 0) {
@@ -1614,11 +1833,21 @@
       };
       modalMealBadge.textContent = mealNames[currentMeal] || '🍜 Món ngon tại TP.HCM';
 
+      // Cập nhật điểm đánh giá & nút xem review
+      const summary = getDishRatingSummary(dish);
+      if (modalRatingScore) modalRatingScore.textContent = `${summary.starsText}/5`;
+      if (modalReviewCount) modalReviewCount.textContent = `(${summary.count} review 💬)`;
+      if (modalOpenReviewBtn) {
+        modalOpenReviewBtn.onclick = () => {
+          showReviewModal(dish);
+        };
+      }
+
       const nearbyQuery = `${dish.name} TP.HCM gần đây`;
       modalNearbySearchLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nearbyQuery)}`;
 
-      const locations = Array.isArray(dish.locations) && dish.locations.length > 0 
-        ? dish.locations 
+      const locations = Array.isArray(dish.locations) && dish.locations.length > 0
+        ? dish.locations
         : [{ name: dish.name, address: 'TP. Hồ Chí Minh' }];
 
       modalLocationsCount.textContent = `${locations.length} quán`;
@@ -1630,7 +1859,7 @@
 
         const card = document.createElement('div');
         card.className = 'group flex items-center justify-between p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-brand-500/50 transition duration-150 text-left';
-        
+
         card.innerHTML = `
           <div class="flex items-start space-x-3 min-w-0 pr-2">
             <div class="w-7 h-7 rounded-lg bg-brand-500/20 text-brand-400 border border-brand-500/30 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
@@ -1693,7 +1922,7 @@
       const titles = {
         sang: { name: 'Thực Đơn Sáng Sài Gòn', badge: 'BỮA SÁNG TP.HCM', icon: '🌅' },
         trua: { name: 'Thực Đơn Trưa Sài Gòn', badge: 'BỮA TRƯA TP.HCM', icon: '☀️' },
-        toi:  { name: 'Thực Đơn Chiều / Tối Sài Gòn', badge: 'CHIỀU / TỐI TP.HCM', icon: '🌙' },
+        toi: { name: 'Thực Đơn Chiều / Tối Sài Gòn', badge: 'CHIỀU / TỐI TP.HCM', icon: '🌙' },
       };
       const curInfo = titles[currentMeal];
       currentMealHeading.textContent = `${curInfo.icon} ${curInfo.name}`;
@@ -1718,8 +1947,8 @@
 
       const filtered = activeList.filter(d => {
         const matchName = d.name.toLowerCase().includes(searchTerm);
-        const matchLoc = Array.isArray(d.locations) && d.locations.some(l => 
-          (l.name && l.name.toLowerCase().includes(searchTerm)) || 
+        const matchLoc = Array.isArray(d.locations) && d.locations.some(l =>
+          (l.name && l.name.toLowerCase().includes(searchTerm)) ||
           (l.address && l.address.toLowerCase().includes(searchTerm))
         );
         return matchName || matchLoc;
@@ -1737,18 +1966,20 @@
       filtered.forEach((dish, index) => {
         const itemEl = document.createElement('div');
         itemEl.className = 'group flex flex-col p-3 rounded-2xl bg-slate-950/50 hover:bg-slate-800/60 border border-slate-800/80 hover:border-slate-700 transition duration-150';
-        
+
         const tagBadges = (dish.mealTypes || []).map(m => {
           if (m === 'sang') return '<span class="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-md">Sáng</span>';
           if (m === 'trua') return '<span class="text-[10px] px-1.5 py-0.5 bg-sky-500/10 text-sky-300 border border-sky-500/20 rounded-md">Trưa</span>';
-          if (m === 'toi')  return '<span class="text-[10px] px-1.5 py-0.5 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-md">Tối</span>';
+          if (m === 'toi') return '<span class="text-[10px] px-1.5 py-0.5 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-md">Tối</span>';
           return '';
         }).join(' ');
 
         const locationsCount = Array.isArray(dish.locations) ? dish.locations.length : 0;
-        const locationsPreview = Array.isArray(dish.locations) && dish.locations.length > 0 
+        const locationsPreview = Array.isArray(dish.locations) && dish.locations.length > 0
           ? dish.locations.map(l => l.name).slice(0, 3).join(', ') + (dish.locations.length > 3 ? '...' : '')
           : 'TP. Hồ Chí Minh';
+
+        const ratingSummary = getDishRatingSummary(dish);
 
         itemEl.innerHTML = `
           <div class="flex items-center justify-between">
@@ -1759,12 +1990,23 @@
               <div class="min-w-0">
                 <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
                   <h4 class="text-sm font-bold text-slate-100 truncate group-hover:text-brand-300 transition">${escapeHtml(dish.name)}</h4>
-                  <div class="flex space-x-1">${tagBadges}</div>
+                  <div class="flex items-center space-x-1">
+                    ${tagBadges}
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold flex items-center gap-0.5">
+                      <span>⭐</span><span>${ratingSummary.starsText}</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="flex items-center space-x-1 flex-shrink-0">
+            <div class="flex items-center space-x-1.5 flex-shrink-0">
+              <!-- Nút Xem đánh giá & Review -->
+              <button data-review-id="${dish.id}" class="review-dish-btn p-1.5 text-xs text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg border border-amber-500/20 transition flex items-center gap-1 cursor-pointer" title="Xem & viết đánh giá cho món này">
+                <span>⭐</span>
+                <span>${ratingSummary.count > 0 ? ratingSummary.count + ' review' : 'Đánh giá'}</span>
+              </button>
+
               <!-- Nút Xem nhanh danh sách quán -->
               <button data-preview-id="${dish.id}" class="preview-dish-btn p-1.5 text-xs text-sky-400 hover:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 rounded-lg border border-sky-500/20 transition flex items-center gap-1 cursor-pointer" title="Xem danh sách quán gợi ý">
                 <span>${locationsCount} quán</span>
@@ -1802,6 +2044,15 @@
           const id = btn.getAttribute('data-preview-id');
           const dish = dishes.find(d => d.id === id);
           if (dish) showResultModal(dish);
+        });
+      });
+
+      // Gắn sự kiện Xem & viết đánh giá (Review)
+      dishItemsContainer.querySelectorAll('.review-dish-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.getAttribute('data-review-id');
+          const dish = dishes.find(d => d.id === id);
+          if (dish) showReviewModal(dish);
         });
       });
     }
@@ -2126,12 +2377,261 @@
     }
 
     /**
-     * 12. TOAST NOTIFICATION
+     * 12. HỆ THỐNG ĐÁNH GIÁ & REVIEW MÓN ĂN SÀI GÒN (ĐỒNG BỘ REALTIME)
+     */
+    const SAMPLE_REVIEWS_HCM = {
+      'Cơm Tấm Sài Gòn': [
+        { author: 'Tuấn Anh (Phú Nhuận)', rating: 5, time: '2 giờ trước', comment: 'Ba Ghiền sườn nướng siêu to che kín dĩa, ướp vừa vị, nước mắm kẹo rất dính!' },
+        { author: 'Thảo My (Quận 7)', rating: 5, time: '1 ngày trước', comment: 'Phúc Lộc Thọ ăn sạch sẽ, bì chả làm chuẩn vị thơm bùi.' },
+        { author: 'Chú Hùng Sài Gòn', rating: 5, time: '3 ngày trước', comment: 'Cơm tấm sáng ăn no tới trưa, tóp mỡ mỡ hành béo ngậy chuẩn bài Sài Gòn.' }
+      ],
+      'Hủ Tiếu Nam Vang': [
+        { author: 'Hoàng Long (Quận 5)', rating: 5, time: 'Hôm qua', comment: 'Hủ tiếu Nhân Quán nước lèo ngọt thanh từ tôm mực, tỏi phi thơm nức nở.' },
+        { author: 'Minh Thư (Quận 1)', rating: 4, time: '2 ngày trước', comment: 'Kêu tô khô sốt đậm đà, thêm chén súp nóng có trứng cút thịt bằm chuẩn vị.' }
+      ],
+      'Bánh Mì Thịt & Chảo': [
+        { author: 'Quang Huy (Quận 3)', rating: 5, time: '3 giờ trước', comment: 'Huỳnh Hoa pate siêu ngon béo ngậy, ổ to ăn 2 người mới hết.' },
+        { author: 'Bảo Trâm (Quận 1)', rating: 5, time: 'Hôm qua', comment: 'Bánh mì chảo Hòa Mã ăn với bơ pate chiên trứng ốp la giòn rụm.' }
+      ],
+      'Bún Bò Huế Sài Gòn': [
+        { author: 'Kim Ngân (Quận 3)', rating: 5, time: '5 giờ trước', comment: 'Út Hưng nước dùng thơm nồng mùi sả ruốc, thịt nạm mềm tan trong miệng.' },
+        { author: 'Hải Đăng (Phú Nhuận)', rating: 4, time: '2 ngày trước', comment: 'Sa tế cay nồng thơm lừng, bò viên gân giòn sần sật ăn rất đã.' }
+      ],
+      'Phở Bò Sài Gòn': [
+        { author: 'Chú Ba Chợ Lớn', rating: 5, time: '1 ngày trước', comment: 'Phở Lệ nước béo ngọt thanh từ xương hầm, bò tái mềm ngọt chấm tương đen đỉnh.' },
+        { author: 'Thành Trung (Quận 3)', rating: 5, time: '3 ngày trước', comment: 'Phở Hòa Pasteur rau giá ăn thoải mái, nước dùng đậm đà hương quế hồi.' }
+      ],
+      'Bò Né Bánh Mì': [
+        { author: 'Hồng Phúc (Phú Nhuận)', rating: 5, time: 'Hôm qua', comment: 'Bò né Lệ Hồng chảo gang xèo xèo thơm phức, thịt mềm ướp tiêu đậm đà.' }
+      ],
+      'Bánh Canh Cua & Giò Heo': [
+        { author: 'Thanh Trúc (Quận 10)', rating: 5, time: '4 giờ trước', comment: 'Út Lệ Tô Hiến Thành thịt cua tươi ngọt, chả cua giòn và nước dùng sánh sệt.' }
+      ],
+      'Dimsum & Hủ Tiếu Mì Q.5': [
+        { author: 'Gia Bảo (Quận 5)', rating: 5, time: '1 ngày trước', comment: 'Tiến Phát điểm sâm chuẩn vị Chợ Lớn, há cảo tôm nguyên con giòn sần sật.' }
+      ],
+      'Bún Thịt Nướng & Chả Giò': [
+        { author: 'Phương Linh (Quận 1)', rating: 5, time: '2 giờ trước', comment: 'Chị Tuyền thịt nướng thơm lừng than hoa, chả giò giòn rụm rau sống tươi xanh.' }
+      ],
+      'Cơm Gà Xối Mỡ': [
+        { author: 'Văn Hậu (Quận 8)', rating: 5, time: 'Hôm qua', comment: 'Gà Su Su da giòn rụm bên trong mọng nước, cơm chiên đỏ cà chua thơm ngon.' }
+      ],
+      'Bún Đậu Mắm Tôm': [
+        { author: 'Lan Anh (Bình Thạnh)', rating: 5, time: '6 giờ trước', comment: 'Mắm tôm pha chua cay bọt trắng mịn, dồi chiên và chả cốm ăn rất cuốn.' }
+      ],
+      'Ốc & Hải Sản Sài Gòn': [
+        { author: 'Đạt Foodie (Quận 1)', rating: 5, time: 'Hôm qua', comment: 'Ốc Đào sốt bơ tỏi và trứng muối bánh mì chấm không còn một giọt, đi đông vui hết nấc!' }
+      ],
+      'Lẩu Bò & Lẩu Dê': [
+        { author: 'Văn Hùng (Quận 10)', rating: 5, time: '2 ngày trước', comment: 'Hoàng Thu lẩu bò niêu đất thơm ngọt, đuôi bò mềm chấm chao sa tế cay xé lưỡi.' }
+      ],
+      'Phá Lấu Bò & Bánh Mì': [
+        { author: 'Bé Mập (Quận 4)', rating: 5, time: 'Hôm qua', comment: 'Cô Thảo nước dừa béo ngậy ngọt dịu, lòng bò làm sạch sẽ không hề có mùi.' }
+      ],
+      'Chè Mâm & Chè Chợ Lớn': [
+        { author: 'Ngọc Hân (Quận 5)', rating: 5, time: '1 ngày trước', comment: 'Hà Ký chè mè đen và hột gà trà thơm dịu thanh mát giải nhiệt tuyệt vời.' }
+      ]
+    };
+
+    function getDishReviews(dish) {
+      if (dish && Array.isArray(dish.reviews) && dish.reviews.length > 0) {
+        return dish.reviews;
+      }
+      if (dish && SAMPLE_REVIEWS_HCM[dish.name]) {
+        return SAMPLE_REVIEWS_HCM[dish.name];
+      }
+      return [
+        { author: 'Thực khách Sài Gòn', rating: 5, time: 'Mới nhất', comment: 'Món ăn đặc sản hấp dẫn! Đang chờ bạn chia sẻ thêm cảm nhận và quán tâm đắc.' }
+      ];
+    }
+
+    function getDishRatingSummary(dish) {
+      const reviews = getDishReviews(dish);
+      if (!reviews || reviews.length === 0) {
+        return { average: 5.0, count: 0, starsText: '5.0' };
+      }
+      const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+      const avg = (sum / reviews.length).toFixed(1);
+      return { average: Number(avg), count: reviews.length, starsText: avg };
+    }
+
+    function showReviewModal(dish) {
+      if (!dish) return;
+      currentReviewDish = dish;
+      reviewModalDishName.textContent = dish.name;
+
+      const summary = getDishRatingSummary(dish);
+      reviewModalAvgScore.textContent = summary.starsText;
+      reviewModalTotalCount.textContent = `${summary.count} đánh giá`;
+
+      renderReviewList(dish);
+
+      // Reset form
+      setStarRating(5);
+      reviewAuthorInput.value = '';
+      reviewCommentInput.value = '';
+
+      reviewModal.classList.remove('modal-enter');
+      reviewModal.classList.add('modal-show');
+      setTimeout(() => reviewCommentInput.focus(), 150);
+    }
+
+    function hideReviewModal() {
+      reviewModal.classList.remove('modal-show');
+      reviewModal.classList.add('modal-enter');
+      currentReviewDish = null;
+    }
+
+    function renderReviewList(dish) {
+      const reviews = getDishReviews(dish);
+      reviewModalList.innerHTML = '';
+
+      if (!reviews || reviews.length === 0) {
+        emptyReviewState.classList.remove('hidden');
+        return;
+      }
+      emptyReviewState.classList.add('hidden');
+
+      reviews.forEach(rev => {
+        const item = document.createElement('div');
+        item.className = 'p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-xs space-y-1.5 transition hover:bg-slate-800';
+
+        const ratingNum = Math.min(5, Math.max(1, Number(rev.rating) || 5));
+        const starString = '★'.repeat(ratingNum) + '☆'.repeat(Math.max(0, 5 - ratingNum));
+        const authorInitial = (rev.author || 'T').charAt(0).toUpperCase();
+
+        item.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 font-bold flex items-center justify-center text-[10px] border border-amber-500/30 flex-shrink-0">
+                ${escapeHtml(authorInitial)}
+              </div>
+              <span class="font-bold text-slate-200 truncate max-w-[150px] sm:max-w-[200px]">${escapeHtml(rev.author || 'Thực khách Sài Gòn')}</span>
+            </div>
+            <div class="flex items-center space-x-1 flex-shrink-0">
+              <span class="text-amber-400 font-bold tracking-wider">${starString}</span>
+              <span class="text-[10px] text-slate-400 font-normal">(${ratingNum}/5)</span>
+            </div>
+          </div>
+          <p class="text-slate-300 leading-relaxed pl-8">
+            ${escapeHtml(rev.comment)}
+          </p>
+          <div class="text-[10px] text-slate-400 text-right pr-1">
+            ${escapeHtml(rev.time || 'Vừa xong')}
+          </div>
+        `;
+
+        reviewModalList.appendChild(item);
+      });
+    }
+
+    function handleReviewSubmit(e) {
+      e.preventDefault();
+      if (!currentReviewDish) return;
+
+      const now = Date.now();
+      if (now - lastReviewSubmitTimestamp < REVIEW_COOLDOWN_MS) {
+        const waitSec = Math.ceil((REVIEW_COOLDOWN_MS - (now - lastReviewSubmitTimestamp)) / 1000);
+        showToast(`Vui lòng chờ ${waitSec} giây trước khi gửi đánh giá tiếp theo!`, "warning");
+        return;
+      }
+
+      const author = reviewAuthorInput.value.trim() || 'Thực khách Sài Gòn';
+      const comment = reviewCommentInput.value.trim();
+      const rating = selectedStarRating || 5;
+
+      if (!comment) {
+        showToast("Vui lòng nhập cảm nhận hoặc gợi ý của bạn!", "error");
+        reviewCommentInput.focus();
+        return;
+      }
+
+      if (comment.length > 200) {
+        showToast("Cảm nhận tối đa 200 ký tự!", "warning");
+        return;
+      }
+
+      if (!Array.isArray(currentReviewDish.reviews)) {
+        currentReviewDish.reviews = [...getDishReviews(currentReviewDish)];
+      }
+
+      const newReview = {
+        id: 'rev-' + Date.now(),
+        author: author,
+        rating: rating,
+        comment: comment,
+        time: 'Vừa xong',
+        createdAt: Date.now()
+      };
+
+      currentReviewDish.reviews.unshift(newReview);
+      if (currentReviewDish.reviews.length > MAX_REVIEWS_PER_DISH) {
+        currentReviewDish.reviews = currentReviewDish.reviews.slice(0, MAX_REVIEWS_PER_DISH);
+      }
+
+      saveDishes();
+      lastReviewSubmitTimestamp = Date.now();
+
+      renderReviewList(currentReviewDish);
+      const summary = getDishRatingSummary(currentReviewDish);
+      reviewModalAvgScore.textContent = summary.starsText;
+      reviewModalTotalCount.textContent = `${summary.count} đánh giá`;
+
+      updateMealTabsUI();
+
+      reviewCommentInput.value = '';
+      showToast("Cảm ơn bạn đã gửi đánh giá cho món ăn! ⭐", "success");
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+      }
+    }
+
+    function setupStarRatingSelector() {
+      const stars = document.querySelectorAll('#starRatingSelector .star-btn');
+      stars.forEach(star => {
+        star.addEventListener('click', () => {
+          const val = Number(star.dataset.star);
+          setStarRating(val);
+        });
+        star.addEventListener('mouseenter', () => {
+          const val = Number(star.dataset.star);
+          highlightStars(val);
+        });
+      });
+      const container = document.getElementById('starRatingSelector');
+      if (container) {
+        container.addEventListener('mouseleave', () => {
+          highlightStars(selectedStarRating);
+        });
+      }
+    }
+
+    function setStarRating(val) {
+      selectedStarRating = val;
+      highlightStars(val);
+    }
+
+    function highlightStars(val) {
+      const stars = document.querySelectorAll('#starRatingSelector .star-btn');
+      stars.forEach(s => {
+        const starNum = Number(s.dataset.star);
+        if (starNum <= val) {
+          s.classList.remove('text-slate-600');
+          s.classList.add('text-amber-400');
+        } else {
+          s.classList.remove('text-amber-400');
+          s.classList.add('text-slate-600');
+        }
+      });
+    }
+
+    /**
+     * 13. TOAST NOTIFICATION
      */
     function showToast(message, type = 'info') {
       const toastContainer = document.getElementById('toastContainer');
       const toast = document.createElement('div');
-      
+
       let border = 'border-slate-700 bg-slate-900 text-slate-200';
       let icon = 'ℹ️';
 
@@ -2163,7 +2663,7 @@
 
     function escapeHtml(str) {
       if (!str) return '';
-      return str.replace(/[&<>"']/g, function(m) {
+      return str.replace(/[&<>"']/g, function (m) {
         return {
           '&': '&amp;',
           '<': '&lt;',
@@ -2240,11 +2740,22 @@
         if (e.target === adminModal) hideAdminModal();
       });
 
+      // 9. Review Modal Events
+      if (closeReviewModalBtn) closeReviewModalBtn.addEventListener('click', hideReviewModal);
+      if (addReviewForm) addReviewForm.addEventListener('submit', handleReviewSubmit);
+      setupStarRatingSelector();
+      if (reviewModal) {
+        reviewModal.addEventListener('click', (e) => {
+          if (e.target === reviewModal) hideReviewModal();
+        });
+      }
+
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           hideResultModal();
           hideFirebaseModal();
           hideAdminModal();
+          hideReviewModal();
         }
       });
 
@@ -2273,4 +2784,5 @@
     document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
+
 </html>
