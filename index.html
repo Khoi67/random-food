@@ -179,8 +179,14 @@
           </svg>
         </button>
 
+        <!-- Admin Mode Toggle / Status Button -->
+        <button id="adminLockBtn" class="text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 sm:py-2 rounded-xl border border-slate-700 transition flex items-center space-x-1.5 cursor-pointer" title="Quản trị viên (Nhập mã PIN để mở khóa xóa / khôi phục)">
+          <span id="adminLockIcon">🔒</span>
+          <span id="adminLockText" class="font-medium hidden sm:inline">Khách</span>
+        </button>
+
         <!-- Reset Default Data Button -->
-        <button id="resetDefaultsBtn" class="text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-2 rounded-xl border border-slate-700 transition flex items-center space-x-1.5 cursor-pointer" title="Khôi phục lại danh sách món mẫu chuẩn TP.HCM">
+        <button id="resetDefaultsBtn" class="text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-2 rounded-xl border border-slate-700 transition flex items-center space-x-1.5 cursor-pointer" title="Khôi phục lại danh sách món mẫu chuẩn TP.HCM (Yêu cầu quyền Admin)">
           <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
@@ -567,6 +573,57 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL XÁC THỰC QUYỀN ADMIN ==================== -->
+  <div id="adminModal" class="modal-backdrop modal-enter fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="modal-content w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 shadow-2xl relative">
+      
+      <!-- Close Button -->
+      <button id="closeAdminModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/80 transition cursor-pointer" title="Đóng">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div class="flex flex-col items-center text-center mb-4">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl mb-2">
+          🔐
+        </div>
+        <h3 class="text-base font-bold text-white">Xác Thực Quyền Quản Trị</h3>
+        <p class="text-xs text-slate-400 mt-1">Cần quyền Admin để xóa món hoặc khôi phục dữ liệu gốc trên Cloud</p>
+      </div>
+
+      <form id="adminPinForm" class="space-y-4">
+        <div>
+          <label for="adminPinInput" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 text-center">
+            Mã PIN Quản Trị
+          </label>
+          <input type="password" id="adminPinInput" required placeholder="Nhập mã PIN Admin" class="w-full bg-slate-950/80 border border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-center text-lg tracking-widest font-mono text-white rounded-xl px-4 py-2.5 outline-none transition placeholder:text-slate-600 placeholder:text-xs placeholder:tracking-normal">
+        </div>
+
+        <div class="flex gap-2">
+          <button id="logoutAdminBtn" type="button" class="hidden flex-1 py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:bg-rose-950/60 hover:text-rose-200 hover:border-rose-700/60 font-semibold text-xs transition cursor-pointer">
+            Đăng xuất Admin
+          </button>
+          <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-brand-500 hover:from-amber-600 hover:to-brand-600 text-white font-bold text-xs transition shadow-lg shadow-amber-500/20 cursor-pointer">
+            Xác Nhận Mở Khóa
+          </button>
+        </div>
+
+        <!-- Tùy chọn đổi mã PIN (chỉ hiện khi đã đăng nhập) -->
+        <div id="changePinSection" class="hidden pt-3 border-t border-slate-800 space-y-2">
+          <p class="text-xs font-semibold text-slate-300">Đổi mã PIN mới:</p>
+          <div class="flex gap-2">
+            <input type="password" id="newPinInput" placeholder="Mã PIN mới" class="flex-1 bg-slate-950 border border-slate-700 text-xs px-3 py-1.5 rounded-lg text-white outline-none">
+            <button id="saveNewPinBtn" type="button" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg font-semibold transition border border-slate-700 cursor-pointer">
+              Đổi PIN
+            </button>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
@@ -871,6 +928,8 @@
 
     const STORAGE_KEY = 'hom_nay_an_gi_dishes_hcm_v2';
     const FIREBASE_CONFIG_KEY = 'hom_nay_an_gi_firebase_config_v1';
+    const ADMIN_PIN_KEY = 'hom_nay_an_gi_admin_pin_v1';
+    const DEFAULT_ADMIN_PIN = '123456';
 
     // Cấu hình Firebase Realtime Database (Người dùng nhập qua modal trên web)
     const DEFAULT_FIREBASE_CONFIG = null;
@@ -905,6 +964,10 @@
     let firebaseDb = null;
     let isFirebaseConnected = false;
 
+    // Admin state (Kiểm soát quyền xóa món & khôi phục mẫu)
+    let isAdminAuthenticated = false;
+    let pendingAdminCallback = null;
+
     /**
      * DOM ELEMENTS
      */
@@ -931,6 +994,19 @@
     const soundOnIcon = document.getElementById('soundOnIcon');
     const soundOffIcon = document.getElementById('soundOffIcon');
     const dataSaveModeBadge = document.getElementById('dataSaveModeBadge');
+
+    // Admin Elements
+    const adminLockBtn = document.getElementById('adminLockBtn');
+    const adminLockIcon = document.getElementById('adminLockIcon');
+    const adminLockText = document.getElementById('adminLockText');
+    const adminModal = document.getElementById('adminModal');
+    const closeAdminModalBtn = document.getElementById('closeAdminModalBtn');
+    const adminPinForm = document.getElementById('adminPinForm');
+    const adminPinInput = document.getElementById('adminPinInput');
+    const logoutAdminBtn = document.getElementById('logoutAdminBtn');
+    const changePinSection = document.getElementById('changePinSection');
+    const newPinInput = document.getElementById('newPinInput');
+    const saveNewPinBtn = document.getElementById('saveNewPinBtn');
 
     // Cloud / Firebase Elements
     const openFirebaseModalBtn = document.getElementById('openFirebaseModalBtn');
@@ -1755,25 +1831,119 @@
       updateMealTabsUI();
     }
 
+    /**
+     * 10. PHÂN QUYỀN ADMIN CHO CÁC THAO TÁC NGUY HIỂM (XÓA MÓN & KHÔI PHỤC MẪU)
+     */
+    function getStoredAdminPin() {
+      return localStorage.getItem(ADMIN_PIN_KEY) || DEFAULT_ADMIN_PIN;
+    }
+
+    function requireAdminPermission(actionName, callback) {
+      if (isAdminAuthenticated) {
+        callback();
+        return;
+      }
+
+      pendingAdminCallback = callback;
+      adminPinInput.value = '';
+      showAdminModal();
+    }
+
+    function showAdminModal() {
+      if (isAdminAuthenticated) {
+        logoutAdminBtn.classList.remove('hidden');
+        changePinSection.classList.remove('hidden');
+      } else {
+        logoutAdminBtn.classList.add('hidden');
+        changePinSection.classList.add('hidden');
+      }
+      adminModal.classList.remove('modal-enter');
+      adminModal.classList.add('modal-show');
+      setTimeout(() => adminPinInput.focus(), 150);
+    }
+
+    function hideAdminModal() {
+      adminModal.classList.remove('modal-show');
+      adminModal.classList.add('modal-enter');
+      pendingAdminCallback = null;
+    }
+
+    function handleAdminPinSubmit(e) {
+      e.preventDefault();
+      const enteredPin = adminPinInput.value.trim();
+      const correctPin = getStoredAdminPin();
+
+      if (enteredPin === correctPin) {
+        isAdminAuthenticated = true;
+        updateAdminUI(true);
+        hideAdminModal();
+        showToast("Đã mở khóa quyền Admin thành công!", "success");
+
+        if (typeof pendingAdminCallback === 'function') {
+          const action = pendingAdminCallback;
+          pendingAdminCallback = null;
+          action();
+        }
+      } else {
+        showToast("Mã PIN không chính xác! Vui lòng thử lại", "error");
+        adminPinInput.value = '';
+        adminPinInput.focus();
+      }
+    }
+
+    function updateAdminUI(isAdmin) {
+      if (isAdmin) {
+        adminLockIcon.textContent = "🔓";
+        adminLockText.textContent = "Admin";
+        adminLockBtn.className = "text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white px-2.5 py-1.5 sm:py-2 rounded-xl border border-amber-500/40 transition flex items-center space-x-1.5 cursor-pointer shadow-sm";
+      } else {
+        adminLockIcon.textContent = "🔒";
+        adminLockText.textContent = "Khách";
+        adminLockBtn.className = "text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 sm:py-2 rounded-xl border border-slate-700 transition flex items-center space-x-1.5 cursor-pointer";
+      }
+    }
+
+    function logoutAdmin() {
+      isAdminAuthenticated = false;
+      updateAdminUI(false);
+      hideAdminModal();
+      showToast("Đã khóa quyền Admin (Chế độ Khách)", "info");
+    }
+
+    function handleSaveNewPin() {
+      const newPin = newPinInput.value.trim();
+      if (!newPin || newPin.length < 4) {
+        showToast("Mã PIN mới phải từ 4 ký tự trở lên!", "warning");
+        return;
+      }
+      localStorage.setItem(ADMIN_PIN_KEY, newPin);
+      newPinInput.value = '';
+      showToast("Đã đổi mã PIN Admin thành công!", "success");
+    }
+
     function deleteDish(id) {
       const target = dishes.find(d => d.id === id);
       if (!target) return;
 
-      if (confirm(`Bạn có chắc muốn xoá "${target.name}" khỏi thực đơn?`)) {
-        dishes = dishes.filter(d => d.id !== id);
-        saveDishes();
-        showToast(`Đã xoá món "${target.name}"!`, "info");
-        updateMealTabsUI();
-      }
+      requireAdminPermission("Xóa món ăn", () => {
+        if (confirm(`Bạn có chắc muốn xoá "${target.name}" khỏi thực đơn dùng chung của mọi người?`)) {
+          dishes = dishes.filter(d => d.id !== id);
+          saveDishes();
+          showToast(`Đã xoá món "${target.name}"!`, "info");
+          updateMealTabsUI();
+        }
+      });
     }
 
     function resetDefaultDishes() {
-      if (confirm("Khôi phục trọn bộ thực đơn món ăn & quán ngon nổi tiếng chuẩn TP.HCM?")) {
-        dishes = JSON.parse(JSON.stringify(DEFAULT_DISHES_HCM));
-        saveDishes();
-        showToast("Đã khôi phục thực đơn đặc sắc TP.HCM thành công!", "success");
-        updateMealTabsUI();
-      }
+      requireAdminPermission("Khôi phục dữ liệu mẫu", () => {
+        if (confirm("CẢNH BÁO: Hành động này sẽ thay thế toàn bộ thực đơn dùng chung của mọi người bằng danh sách mẫu gốc chuẩn TP.HCM. Bạn chắc chắn chứ?")) {
+          dishes = JSON.parse(JSON.stringify(DEFAULT_DISHES_HCM));
+          saveDishes();
+          showToast("Đã khôi phục thực đơn đặc sắc TP.HCM thành công!", "success");
+          updateMealTabsUI();
+        }
+      });
     }
 
     /**
@@ -1928,14 +2098,25 @@
         if (e.target === firebaseModal) hideFirebaseModal();
       });
 
+      // 8. Admin PIN Modal Events
+      adminLockBtn.addEventListener('click', showAdminModal);
+      closeAdminModalBtn.addEventListener('click', hideAdminModal);
+      adminPinForm.addEventListener('submit', handleAdminPinSubmit);
+      logoutAdminBtn.addEventListener('click', logoutAdmin);
+      saveNewPinBtn.addEventListener('click', handleSaveNewPin);
+      adminModal.addEventListener('click', (e) => {
+        if (e.target === adminModal) hideAdminModal();
+      });
+
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           hideResultModal();
           hideFirebaseModal();
+          hideAdminModal();
         }
       });
 
-      // 8. Âm thanh toggle
+      // 9. Âm thanh toggle
       toggleSoundBtn.addEventListener('click', () => {
         soundEnabled = !soundEnabled;
         if (soundEnabled) {

@@ -32,6 +32,16 @@ Chỉ cần thực hiện 3 bước đơn giản:
    - Dán đoạn mã vừa copy vào ô nhập và bấm **"Lưu & Kết Nối Ngay"**.
    - Đèn trạng thái sẽ chuyển sang màu xanh lá **"Firebase Realtime"** 🔥. Giờ đây bất kỳ ai truy cập đường link web của bạn đều sẽ dùng chung 1 thực đơn!
 
+## 🔐 Phân Quyền Admin (Bảo Vệ Thực Đơn Dùng Chung)
+
+Khi nhiều người cùng truy cập ứng dụng chia sẻ Firebase, các thao tác nguy hiểm như **Xóa món ăn** hoặc **Khôi phục mẫu gốc** sẽ được bảo vệ bởi **Mã PIN Admin**:
+- **Khách thường**: Có thể quay vòng may mắn, xem thực đơn, xem quán ăn chỉ đường Google Maps, thêm món mới.
+- **Admin**: Được cấp quyền **Xóa món ăn** và **Khôi phục mẫu**.
+- **Cách mở khóa**:
+  1. Bấm vào nút `🔒 Khách` ở góc trên bên phải.
+  2. Nhập mã PIN và bấm **Xác nhận**.
+  3. Trạng thái sẽ chuyển thành `🔓 Admin`. Bạn có thể đổi mã PIN mới tại đây.
+
 ---
 
 ## 🍜 Thực Đơn Chuyên Biệt TP.HCM (Sài Gòn)
@@ -41,14 +51,21 @@ Chỉ cần thực hiện 3 bước đơn giản:
 
 ---
 
-## 🚀 Cách Deploy Lên Vercel
+## 🚀 Cách Deploy Lên Vercel (Tự Động Cập Nhật Qua GitHub)
 
-1. **Cách 1: Kéo thả (Dễ nhất)**
-   - Truy cập [vercel.com/new](https://vercel.com/new).
-   - Kéo thư mục `random-ai` thả vào trình duyệt Vercel.
-   - Bấm **Deploy**.
-2. **Cách 2: Qua Vercel CLI**
-   ```bash
-   cd d:\Practice\random-ai
-   npx vercel
-   ```
+1. **Liên kết GitHub Repo**:
+   - Truy cập [vercel.com](https://vercel.com/) ➔ Chọn **Add New Project**.
+   - Chọn kho lưu trữ `Khoi67/random-food`.
+2. **Cấu hình Environment Variables (Khuyên dùng)**:
+   - Thêm biến môi trường trong mục **Settings ➔ Environment Variables** trên Vercel:
+     - `FIREBASE_API_KEY`: API Key của Firebase
+     - `FIREBASE_AUTH_DOMAIN`: Auth Domain
+     - `FIREBASE_DATABASE_URL`: Đường link Database URL (ví dụ: `https://...firebasedatabase.app`)
+     - `FIREBASE_PROJECT_ID`: Project ID
+     - `FIREBASE_STORAGE_BUCKET`: Storage Bucket
+     - `FIREBASE_MESSAGING_SENDER_ID`: Sender ID
+     - `FIREBASE_APP_ID`: App ID
+   - Ứng dụng tự động lấy thông tin từ Serverless Function `/api/config` và kết nối Firebase ngay khi tải trang mà không làm lộ secret trên GitHub.
+3. **Mỗi lần git push**:
+   - Khi bạn commit và push code lên nhánh `main` của GitHub, Vercel sẽ tự động build và cập nhật bản mới nhất trong vòng vài giây!
+
