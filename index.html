@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Hôm Nay Ăn Gì Ở TP.HCM? - Vòng Quay May Mắn Ẩm Thực Sài Gòn (Cloud Sync)</title>
+  <meta name="description" content="Vòng quay may mắn chọn món ăn sáng, trưa, tối chuẩn vị TP.HCM kèm danh sách địa chỉ quán nổi tiếng và chỉ đường Google Maps nhanh chóng. Đồng bộ đám mây Realtime!">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍜</text></svg>">
+
+  <!-- Google Fonts: Be Vietnam Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Be Vietnam Pro"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+            },
+            culinary: {
+              dark: '#0f172a',
+              card: '#1e293b',
+              border: '#334155',
+              accent: '#f43f5e',
+            }
+          },
+          animation: {
+            'bounce-subtle': 'bounceSubtle 2s infinite',
+            'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            bounceSubtle: {
+              '0%, 100%': { transform: 'translateY(-4%)' },
+              '50%': { transform: 'translateY(0)' },
+            },
+            pulseGlow: {
+              '0%, 100%': { opacity: '0.6', filter: 'drop-shadow(0 0 15px rgba(249, 115, 22, 0.6))' },
+              '50%': { opacity: '1', filter: 'drop-shadow(0 0 25px rgba(244, 63, 94, 0.9))' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Firebase App & Realtime Database via CDN (Modular SDK) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    window.FirebaseSDK = { initializeApp, getDatabase, ref, set, onValue };
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #f97316;
+    }
+
+    /* Modal transition styles */
+    .modal-backdrop {
+      transition: opacity 0.3s ease-out;
+    }
+    .modal-content {
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-enter {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .modal-enter .modal-content {
+      transform: scale(0.9) translateY(20px);
+    }
+    .modal-show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-show .modal-content {
+      transform: scale(1) translateY(0);
+    }
+
+    /* Wheel Pointer Shadow */
+    .wheel-pointer {
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(234, 88, 12, 0.7));
+    }
+
+    /* Glowing button */
+    .glow-effect {
+      box-shadow: 0 0 25px -5px rgba(249, 115, 22, 0.5), 0 0 10px -6px rgba(249, 115, 22, 0.5);
+    }
+    .glow-effect:hover {
+      box-shadow: 0 0 35px 0px rgba(249, 115, 22, 0.75), 0 0 15px -3px rgba(249, 115, 22, 0.6);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Background decorative light gradients -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-brand-500/15 rounded-full blur-3xl"></div>
+    <div class="absolute top-1/3 -right-40 w-96 h-96 bg-rose-500/15 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-500 to-rose-500 flex items-center justify-center shadow-lg shadow-brand-500/30 text-2xl">
+          🍜
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-brand-300 bg-clip-text text-transparent">
+              Hôm Nay Ăn Gì Ở TP.HCM?
+            </h1>
+            <span class="text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-full hidden sm:inline-block">
+              Sài Gòn Food
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 font-medium hidden sm:block">Vòng quay may mắn chọn món & gợi ý quán ngon nức tiếng tại TP.HCM</p>
+        </div>
+      </div>
+
+      <!-- Live Clock & Controls -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <!-- Live Clock -->
+        <div id="currentTimeBadge" class="hidden sm:flex items-center space-x-2 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-full text-xs font-medium text-slate-300">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="liveClockText">--:--:--</span>
+        </div>
+
+        <!-- Cloud Sync Status / Config Button -->
+        <button id="openFirebaseModalBtn" class="flex items-center space-x-1.5 text-xs px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border transition cursor-pointer bg-slate-800/80 border-slate-700 text-slate-300 hover:border-brand-500 hover:text-white" title="Cài đặt kết nối Firebase để dùng chung Realtime">
+          <span id="cloudStatusDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+          <span id="cloudStatusText" class="font-medium hidden md:inline">Đồng bộ Cloud</span>
+          <svg class="w-3.5 h-3.5 text-brand-400 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+        </button>
+
+        <!-- Sound Toggle Button -->
+        <button id="toggleSoundBtn" title="Bật/Tắt âm thanh quay" class="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700 hover:border-slate-500 hover:text-white text-slate-300 flex items-center justify-center transition cursor-pointer">
+          <svg id="soundOnIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+          <svg id="soundOffIcon" class="w-4 h-4 hidden text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          </svg>
+        </button>
+
+        <!-- Reset Default Data Button -->
+        <button id="resetDefaultsBtn" class="text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-2 rounded-xl border border-slate-700 transition flex items-center space-x-1.5 cursor-pointer" title="Khôi phục lại danh sách món mẫu chuẩn TP.HCM">
+          <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span class="hidden lg:inline font-medium">Khôi phục mẫu</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Meal Tabs Filter Section -->
+    <div class="mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/80 border border-slate-800 p-2 sm:p-2.5 rounded-2xl backdrop-blur-md">
+        
+        <!-- Tab Buttons (Sáng, Trưa, Tối) -->
+        <div class="grid grid-cols-3 gap-1.5 sm:gap-2 w-full sm:w-auto">
+          <!-- Tab Sáng -->
+          <button data-meal="sang" class="meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200">
+            <span class="text-base sm:text-lg">🌅</span>
+            <span>Bữa Sáng</span>
+            <span class="meal-count-badge text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">0</span>
+          </button>
+
+          <!-- Tab Trưa -->
+          <button data-meal="trua" class="meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200">
+            <span class="text-base sm:text-lg">☀️</span>
+            <span>Bữa Trưa</span>
+            <span class="meal-count-badge text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">0</span>
+          </button>
+
+          <!-- Tab Chiều/Tối -->
+          <button data-meal="toi" class="meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200">
+            <span class="text-base sm:text-lg">🌙</span>
+            <span>Chiều / Tối</span>
+            <span class="meal-count-badge text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">0</span>
+          </button>
+        </div>
+
+        <!-- Auto detected hint & Cloud indicator -->
+        <div class="flex items-center gap-2">
+          <div id="mealDetectHint" class="flex items-center justify-center sm:justify-end text-xs text-brand-300/90 font-medium px-2.5 py-1 bg-brand-500/10 border border-brand-500/20 rounded-xl">
+            <svg class="w-3.5 h-3.5 mr-1.5 text-brand-400 animate-spin" style="animation-duration: 8s;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span id="autoActiveText">Đang tự động nhận diện theo giờ...</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Main Grid: Wheel Left / Management Right -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- LEFT: The Wheel Stage (Mobile order 1, Desktop col-span-7) -->
+      <div class="lg:col-span-7 flex flex-col items-center">
+        
+        <!-- Wheel Outer Card -->
+        <div class="w-full relative flex flex-col items-center bg-slate-900/60 border border-slate-800/80 rounded-3xl p-4 sm:p-8 backdrop-blur-md shadow-2xl">
+          
+          <!-- Wheel Title / Quick Info -->
+          <div class="w-full flex items-center justify-between mb-4">
+            <div>
+              <span class="text-xs uppercase tracking-wider font-bold text-brand-400 block mb-0.5" id="currentMealSubheading">Bữa Ăn TP.HCM</span>
+              <h2 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2" id="currentMealHeading">
+                Vòng Quay Ẩm Thực Sài Gòn
+              </h2>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-slate-400">Khả dụng</span>
+              <p class="text-lg font-extrabold text-amber-400"><span id="activeWheelCount">0</span> món</p>
+            </div>
+          </div>
+
+          <!-- The Wheel & Pointer Wrapper -->
+          <div class="relative w-full max-w-[360px] sm:max-w-[430px] md:max-w-[460px] aspect-square my-2 flex items-center justify-center select-none">
+            
+            <!-- Pointer (Kim chỉ vị trí ở trên đỉnh, hướng xuống tâm) -->
+            <div class="absolute -top-3 z-30 pointer-events-none transform -translate-x-1/2 left-1/2 wheel-pointer">
+              <svg width="46" height="56" viewBox="0 0 46 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Drop shadow path -->
+                <path d="M23 54L6 14C4.5 10 7.5 5 12 5H34C38.5 5 41.5 10 40 14L23 54Z" fill="url(#pointerGradient)" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/>
+                <!-- Inner golden accent -->
+                <circle cx="23" cy="16" r="6" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/>
+                <defs>
+                  <linearGradient id="pointerGradient" x1="23" y1="5" x2="23" y2="54" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#ef4444" />
+                    <stop offset="0.7" stop-color="#dc2626" />
+                    <stop offset="1" stop-color="#b91c1c" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+
+            <!-- Outer Glow ring behind canvas -->
+            <div class="absolute inset-2 sm:inset-3 rounded-full bg-gradient-to-tr from-brand-500/20 via-rose-500/10 to-amber-500/20 blur-xl pointer-events-none"></div>
+
+            <!-- HTML5 Canvas for the Lucky Wheel -->
+            <canvas id="wheelCanvas" class="w-full h-full cursor-pointer rounded-full relative z-10 transition-transform"></canvas>
+
+            <!-- Center Spin Button (Nút quay ở tâm bánh xe) -->
+            <button id="centerSpinBtn" class="absolute z-20 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-amber-500 via-brand-500 to-rose-600 border-4 border-slate-900 shadow-2xl flex flex-col items-center justify-center text-white hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer group" title="Bấm để quay">
+              <svg class="w-6 h-6 group-hover:rotate-45 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span class="text-[10px] sm:text-[11px] font-black tracking-wider uppercase">Quay</span>
+            </button>
+
+          </div>
+
+          <!-- Bottom Big Spin Button -->
+          <div class="w-full mt-4 flex flex-col items-center">
+            <button id="mainSpinBtn" class="w-full max-w-sm py-4 px-8 rounded-2xl bg-gradient-to-r from-brand-500 via-rose-500 to-amber-500 hover:from-brand-600 hover:via-rose-600 hover:to-amber-600 text-white font-extrabold text-lg sm:text-xl tracking-wide shadow-xl glow-effect transition-all transform active:scale-98 flex items-center justify-center space-x-3 cursor-pointer">
+              <span class="text-2xl">🎲</span>
+              <span>QUAY NGAY HÔM NAY!</span>
+            </button>
+            <p id="wheelStatusMessage" class="text-xs text-slate-400 mt-2.5 font-medium text-center">
+              Chạm vào vòng quay hoặc nút trên để chọn món & danh sách quán tại TP.HCM
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Dish Management & Adding Form (Desktop col-span-5) -->
+      <div class="lg:col-span-5 flex flex-col space-y-6">
+
+        <!-- Form: Thêm Món Ăn Mới -->
+        <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 sm:p-6 backdrop-blur-md shadow-xl">
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+            <h3 class="text-base font-bold text-white flex items-center space-x-2">
+              <span class="p-1.5 rounded-lg bg-brand-500/20 text-brand-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </span>
+              <span>Thêm Món Ăn & Quán TP.HCM</span>
+            </h3>
+            <span id="dataSaveModeBadge" class="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">LocalStorage</span>
+          </div>
+
+          <form id="addDishForm" class="space-y-4">
+            <!-- Tên món ăn -->
+            <div>
+              <label for="dishNameInput" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Tên Món Ăn <span class="text-rose-400">*</span>
+              </label>
+              <input type="text" id="dishNameInput" required placeholder="VD: Bún mắm, Bánh mì chảo, Chè mâm..." class="w-full bg-slate-950/70 border border-slate-700/80 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-white rounded-xl px-3.5 py-2.5 text-sm placeholder:text-slate-500 outline-none transition">
+            </div>
+
+            <!-- Danh sách địa chỉ / quán ăn tại TP.HCM (Textarea) -->
+            <div>
+              <label for="dishLocationsInput" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Danh Sách Quán & Địa Chỉ Tại TP.HCM <span class="text-rose-400">*</span>
+              </label>
+              <textarea id="dishLocationsInput" rows="3" required placeholder="Mỗi dòng một quán ăn & địa chỉ tại TP.HCM. Ví dụ:&#10;Quán Ăn A - 123 Nguyễn Trãi, P.3, Quận 5&#10;Quán B - 45 Lê Văn Sỹ, Phường 13, Phú Nhuận" class="w-full bg-slate-950/70 border border-slate-700/80 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-white rounded-xl p-3 text-xs placeholder:text-slate-500 outline-none transition leading-relaxed"></textarea>
+              <p class="text-[11px] text-slate-400 mt-1">💡 Nhập mỗi dòng 1 quán. Sau khi quay trúng, người dùng sẽ chọn được từng quán để mở Google Maps.</p>
+            </div>
+
+            <!-- Chọn Bữa Ăn (Checkboxes: Sáng, Trưa, Tối) -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                Phù Hợp Cho Bữa Ăn Nào? <span class="text-rose-400">*</span>
+              </label>
+              <div class="grid grid-cols-3 gap-2">
+                <!-- Checkbox Sáng -->
+                <label class="flex items-center space-x-2 bg-slate-950/50 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl cursor-pointer transition select-none">
+                  <input type="checkbox" name="mealCheck" value="sang" class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-slate-800 border-slate-700 accent-brand-500">
+                  <span class="text-xs font-medium text-slate-200">Sáng</span>
+                </label>
+                <!-- Checkbox Trưa -->
+                <label class="flex items-center space-x-2 bg-slate-950/50 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl cursor-pointer transition select-none">
+                  <input type="checkbox" name="mealCheck" value="trua" class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-slate-800 border-slate-700 accent-brand-500">
+                  <span class="text-xs font-medium text-slate-200">Trưa</span>
+                </label>
+                <!-- Checkbox Tối -->
+                <label class="flex items-center space-x-2 bg-slate-950/50 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl cursor-pointer transition select-none">
+                  <input type="checkbox" name="mealCheck" value="toi" class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 bg-slate-800 border-slate-700 accent-brand-500">
+                  <span class="text-xs font-medium text-slate-200">Chiều/Tối</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="w-full bg-slate-800 hover:bg-brand-500 text-white font-bold py-2.5 px-4 rounded-xl border border-slate-700 hover:border-brand-400 transition-all flex items-center justify-center space-x-2 text-sm shadow cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>Lưu Vào Thực Đơn TP.HCM</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Danh Sách Món Ăn Hiện Tại -->
+        <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-5 sm:p-6 backdrop-blur-md shadow-xl flex flex-col">
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                <span class="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </span>
+                <span>Thực Đơn: <span id="currentListCategoryName" class="text-brand-400">Bữa Sáng</span></span>
+              </h3>
+            </div>
+            <span id="currentListTotalBadge" class="text-xs bg-slate-800 text-slate-300 font-semibold px-2.5 py-1 rounded-full border border-slate-700">0 món</span>
+          </div>
+
+          <!-- Quick Search Filter in List -->
+          <div class="mb-3 relative">
+            <input type="text" id="searchDishInput" placeholder="Tìm nhanh món hoặc quán tại TP.HCM..." class="w-full bg-slate-950/60 border border-slate-800 focus:border-slate-600 rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-slate-500 outline-none">
+            <svg class="w-3.5 h-3.5 text-slate-500 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
+          <!-- Items Scrollable Container -->
+          <div id="dishItemsContainer" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+            <!-- Dynamic items rendered here -->
+          </div>
+
+          <!-- Empty State -->
+          <div id="emptyListState" class="hidden py-10 flex flex-col items-center justify-center text-center">
+            <span class="text-4xl mb-2">🍽️</span>
+            <p class="text-sm font-semibold text-slate-300">Chưa có món nào cho bữa này</p>
+            <p class="text-xs text-slate-500 max-w-xs mt-1">Hãy thêm món mới hoặc bấm "Khôi phục mẫu" ở góc trên bên phải.</p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-slate-800/80 bg-slate-950/70 py-4 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>🍜 Thực đơn chuyên biệt ẩm thực TP. Hồ Chí Minh. Hỗ trợ đồng bộ đám mây Realtime qua Firebase.</p>
+      <p class="text-slate-400">Chúc bạn và mọi người có bữa ăn ngon miệng tại Sài Gòn! ✨</p>
+    </div>
+  </footer>
+
+  <!-- ==================== MODAL KẾT QUẢ QUAY THƯỞNG KÈM DANH SÁCH ĐỊA CHỈ ==================== -->
+  <div id="resultModal" class="modal-backdrop modal-enter fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    
+    <!-- Modal Card -->
+    <div class="modal-content w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <!-- Top Decorative Glow -->
+      <div class="absolute -top-16 -left-16 w-48 h-48 bg-brand-500/25 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="absolute -top-16 -right-16 w-48 h-48 bg-rose-500/25 rounded-full blur-2xl pointer-events-none"></div>
+
+      <!-- Close Button -->
+      <button id="closeModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/80 transition cursor-pointer z-10" title="Đóng popup">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Content -->
+      <div class="flex flex-col items-center text-center mt-1 flex-shrink-0">
+        
+        <!-- Big Winner Icon Badge -->
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-500 to-rose-500 p-0.5 shadow-xl shadow-brand-500/20 mb-3 animate-bounce-subtle">
+          <div class="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center text-3xl">
+            🎉
+          </div>
+        </div>
+
+        <span class="text-[11px] font-bold uppercase tracking-widest text-amber-400 px-3 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 mb-1.5">
+          VŨ TRỤ ĐÃ CHỌN CHO BẠN
+        </span>
+
+        <!-- Tên món ăn trúng thưởng -->
+        <h2 id="modalDishName" class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-amber-200 mb-1 px-2">
+          Cơm Tấm Sài Gòn
+        </h2>
+
+        <!-- Bữa ăn badge -->
+        <span id="modalMealBadge" class="text-xs text-brand-300 font-semibold mb-3 inline-flex items-center">
+          🌅 Món ăn Bữa Sáng tại TP.HCM
+        </span>
+      </div>
+
+      <!-- Danh sách các quán & địa chỉ gợi ý tại TP.HCM (Cuộn mượt mà) -->
+      <div class="w-full flex-1 overflow-y-auto my-2 pr-1 space-y-2">
+        <div class="flex items-center justify-between text-xs text-slate-400 px-1 pb-1 border-b border-slate-800">
+          <span class="font-semibold text-slate-300 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>Top Quán Ngon Gợi Ý Tại TP.HCM:</span>
+          </span>
+          <span id="modalLocationsCount" class="text-amber-400 font-bold">0 quán</span>
+        </div>
+
+        <!-- Container chứa các quán của món ăn -->
+        <div id="modalLocationsList" class="space-y-2 pt-1">
+          <!-- Dynamic quán được render ở đây -->
+        </div>
+      </div>
+
+      <!-- Buttons CTA -->
+      <div class="w-full space-y-2 mt-3 pt-3 border-t border-slate-800 flex-shrink-0">
+        <!-- Quick Nearby Search on Maps Button -->
+        <a id="modalNearbySearchLink" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-4 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-sky-300 hover:text-white font-semibold text-xs border border-sky-500/30 flex items-center justify-center space-x-1.5 transition">
+          <svg class="w-4 h-4 text-sky-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/>
+          </svg>
+          <span>Tìm thêm quán món này gần tôi nhất trên Google Maps</span>
+          <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+
+        <!-- Spin Again Button -->
+        <button id="modalSpinAgainBtn" class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-brand-500 to-rose-500 hover:from-brand-600 hover:to-rose-600 text-white font-extrabold text-sm shadow-lg shadow-brand-500/25 transition flex items-center justify-center space-x-2 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Quay tiếp món khác</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CẤU HÌNH FIREBASE REALTIME DÙNG CHUNG ==================== -->
+  <div id="firebaseModal" class="modal-backdrop modal-enter fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="modal-content w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 rounded-3xl p-6 shadow-2xl relative">
+      
+      <!-- Close Button -->
+      <button id="closeFirebaseModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/80 transition cursor-pointer" title="Đóng">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4 pb-3 border-b border-slate-800">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl">
+          🔥
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Kết Nối Firebase Dùng Chung</h3>
+          <p class="text-xs text-slate-400">Đồng bộ Realtime: Khi ai thêm/xóa món, mọi người đều thấy ngay lập tức!</p>
+        </div>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <div class="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 text-slate-300 space-y-1">
+          <p class="font-semibold text-brand-300">📖 3 bước cấu hình Firebase (Hoàn toàn Miễn phí):</p>
+          <ol class="list-decimal list-inside space-y-0.5 text-[11px] text-slate-400 pl-1">
+            <li>Vào <a href="https://console.firebase.google.com" target="_blank" class="text-sky-400 underline font-semibold">Firebase Console</a> ➔ Tạo Project mới.</li>
+            <li>Vào <b>Build ➔ Realtime Database</b> ➔ <b>Create Database</b> (chọn chế độ <i>Test Mode</i>).</li>
+            <li>Vào <b>Project Settings</b> (icon bánh răng) ➔ Kéo xuống mục <i>Your apps</i> ➔ Thêm Web App <code class="text-amber-300">&lt;/&gt;</code> để lấy đoạn mã <code class="text-amber-300">firebaseConfig</code>.</li>
+          </ol>
+        </div>
+
+        <div>
+          <label for="firebaseConfigTextarea" class="block font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+            Dán đoạn mã <code class="text-brand-400 lowercase">firebaseConfig</code> vào đây:
+          </label>
+          <textarea id="firebaseConfigTextarea" rows="6" placeholder='const firebaseConfig = {&#10;  apiKey: "AIzaSy...",&#10;  authDomain: "my-app.firebaseapp.com",&#10;  databaseURL: "https://my-app-default-rtdb.firebaseio.com",&#10;  projectId: "my-app",&#10;  storageBucket: "...",&#10;  messagingSenderId: "...",&#10;  appId: "..."&#10;};' class="w-full font-mono text-[11px] bg-slate-950/80 border border-slate-700 focus:border-brand-500 rounded-xl p-3 text-slate-200 outline-none transition leading-relaxed"></textarea>
+          <p class="text-[11px] text-slate-400 mt-1">💡 Bạn có thể dán cả đoạn <code class="text-slate-300">const firebaseConfig = { ... }</code> hoặc dạng JSON <code class="text-slate-300">{ "apiKey": "..." }</code>.</p>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 gap-2">
+          <button id="disconnectFirebaseBtn" type="button" class="px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-rose-950/60 hover:border-rose-700/60 text-slate-300 hover:text-rose-200 font-semibold transition cursor-pointer">
+            Ngắt kết nối (dùng LocalStorage)
+          </button>
+          <button id="saveFirebaseConfigBtn" type="button" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-brand-500 hover:from-amber-600 hover:to-brand-600 text-white font-bold transition shadow-lg shadow-amber-500/20 cursor-pointer">
+            Lưu & Kết Nối Ngay
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- ==================== LOGIC JAVASCRIPT ==================== -->
+  <script>
+    /**
+     * BỘ DỮ LIỆU MẪU CHUẨN ẨM THỰC TP. HỒ CHÍ MINH (SÀI GÒN)
+     */
+    const DEFAULT_DISHES_HCM = [
+      // ========== BỮA SÁNG TẠI TP.HCM ==========
+      {
+        id: 'hcm-sang-1',
+        name: 'Cơm Tấm Sài Gòn',
+        mealTypes: ['sang', 'trua', 'toi'],
+        locations: [
+          { name: 'Cơm Tấm Ba Ghiền', address: '84 Đặng Văn Ngữ, P.10, Phú Nhuận' },
+          { name: 'Cơm Tấm Phúc Lộc Thọ', address: '223 Nguyễn Thị Thập, Tân Phú, Quận 7' },
+          { name: 'Cơm Tấm Tú Mập', address: '89-91 Đồng Đen, Phường 12, Tân Bình' },
+          { name: 'Cơm Tấm Nguyễn Văn Cừ', address: '167 Nguyễn Văn Cừ, Phường 2, Quận 5' },
+          { name: 'Cơm Tấm Bụi Sài Gòn', address: '100 Thạch Thị Thanh, Tân Định, Quận 1' }
+        ]
+      },
+      {
+        id: 'hcm-sang-2',
+        name: 'Hủ Tiếu Nam Vang',
+        mealTypes: ['sang', 'trua', 'toi'],
+        locations: [
+          { name: 'Hủ Tiếu Nam Vang Nhân Quán', address: '122 Nguyễn Trãi, Phường 3, Quận 5' },
+          { name: 'Hủ Tiếu Nam Vang Quỳnh', address: 'A65 Nguyễn Trãi, Cư xá Đô Thành, Quận 1' },
+          { name: 'Hủ Tiếu Nam Vang Thành Đạt', address: '34 Cô Bắc, Cầu Ông Lãnh, Quận 1' },
+          { name: 'Hủ Tiếu Nam Vang Liến Húa', address: '312 An Dương Vương, Phường 4, Quận 5' }
+        ]
+      },
+      {
+        id: 'hcm-sang-3',
+        name: 'Bánh Mì Thịt & Chảo',
+        mealTypes: ['sang', 'trua'],
+        locations: [
+          { name: 'Bánh Mì Huỳnh Hoa', address: '26 Lê Thị Riêng, P. Bến Thành, Quận 1' },
+          { name: 'Bánh Mì Bảy Hổ', address: '19 Huỳnh Khương Ninh, Đa Kao, Quận 1' },
+          { name: 'Bánh Mì Như Lan', address: '50 Hàm Nghi, P. Bến Nghé, Quận 1' },
+          { name: 'Bánh Mì Chảo Hòa Mã', address: '53 Cao Thắng, Phường 3, Quận 3' },
+          { name: 'Bánh Mì Phá Lấu Bà 6', address: '104 Hoàng Diệu, Phường 12, Quận 4' }
+        ]
+      },
+      {
+        id: 'hcm-sang-4',
+        name: 'Bún Bò Huế Sài Gòn',
+        mealTypes: ['sang', 'trua'],
+        locations: [
+          { name: 'Bún Bò Huế Út Hưng', address: '113 Bà Huyện Thanh Quan, Võ Thị Sáu, Quận 3' },
+          { name: 'Bún Bò Huế Đông Ba', address: '207 Nguyễn Trãi, P. Nguyễn Cư Trinh, Quận 1' },
+          { name: 'Bún Bò Ba Nghị', address: '45 Lê Văn Sỹ, Phường 13, Phú Nhuận' },
+          { name: 'Bún Bò Gánh', address: '88 Hồ Tùng Mậu, Bến Nghé, Quận 1' }
+        ]
+      },
+      {
+        id: 'hcm-sang-5',
+        name: 'Phở Bò Sài Gòn',
+        mealTypes: ['sang', 'trua', 'toi'],
+        locations: [
+          { name: 'Phở Lệ', address: '415 Nguyễn Trãi, Phường 7, Quận 5' },
+          { name: 'Phở Hòa Pasteur', address: '260C Pasteur, Phường 8, Quận 3' },
+          { name: 'Phở Phú Vương', address: '120 Nguyễn Thái Bình, Quận 1' },
+          { name: 'Phở Thìn Sài Gòn', address: '110 Hai Bà Trưng, Đa Kao, Quận 1' }
+        ]
+      },
+      {
+        id: 'hcm-sang-6',
+        name: 'Bò Né Bánh Mì',
+        mealTypes: ['sang'],
+        locations: [
+          { name: 'Bò Né Lệ Hồng', address: '489/29 Huỳnh Văn Bánh, Phường 13, Phú Nhuận' },
+          { name: 'Bò Né Cô Long', address: '27/53 Nguyễn Bỉnh Khiêm, Đa Kao, Quận 1' },
+          { name: 'Bò Né 3 Ngon', address: '18 Đinh Tiên Hoàng, Đa Kao, Quận 1' }
+        ]
+      },
+      {
+        id: 'hcm-sang-7',
+        name: 'Bánh Canh Cua & Giò Heo',
+        mealTypes: ['sang', 'trua', 'toi'],
+        locations: [
+          { name: 'Bánh Canh Cua Út Lệ', address: '210 Tô Hiến Thành, Phường 15, Quận 10' },
+          { name: 'Bánh Canh Cua Hoàng Lan', address: '484 Vĩnh Viễn, Phường 8, Quận 10' },
+          { name: 'Bánh Canh Cua Trần Khắc Chân', address: '87 Trần Khắc Chân, Tân Định, Quận 1' },
+          { name: 'Bánh Canh Giò Heo 144', address: '144 Nguyễn Tri Phương, Phường 9, Quận 5' }
+        ]
+      },
+      {
+        id: 'hcm-sang-8',
+        name: 'Dimsum & Hủ Tiếu Mì Q.5',
+        mealTypes: ['sang', 'trua'],
+        locations: [
+          { name: 'Tiến Phát Điểm Sâm Quán', address: '18 Ký Hòa, Phường 15, Quận 5' },
+          { name: 'Baoz Dimsum', address: '88 Nguyễn Tri Phương, Phường 7, Quận 5' },
+          { name: 'Hủ Tiếu Mì Thiệu Ký', address: '66/5 Lê Đại Hành, Phường 7, Quận 11' },
+          { name: 'Hủ Tiếu Sa Tế Quảng Ký', address: '117 Triệu Quang Phục, Phường 11, Quận 5' }
+        ]
+      },
+      {
+        id: 'hcm-sang-9',
+        name: 'Xôi Mặn & Xôi Gà',
+        mealTypes: ['sang', 'toi'],
+        locations: [
+          { name: 'Xôi Gà Bà Chiểu', address: '318/1 Bùi Hữu Nghĩa, Phường 2, Bình Thạnh' },
+          { name: 'Xôi Bát Bửu Chợ Lớn', address: '223 Nguyễn Trãi, Phường 2, Quận 5' },
+          { name: 'Xôi Mặn Cô Lan', address: '280 Bùi Hữu Nghĩa, Phường 2, Bình Thạnh' }
+        ]
+      },
+
+      // ========== BỮA TRƯA TẠI TP.HCM ==========
+      {
+        id: 'hcm-trua-1',
+        name: 'Bún Thịt Nướng & Chả Giò',
+        mealTypes: ['trua', 'toi'],
+        locations: [
+          { name: 'Bún Thịt Nướng Chị Tuyền', address: '175 Cô Giang, Phường Cô Giang, Quận 1' },
+          { name: 'Bún Thịt Nướng Hải Mập', address: '149/1 Nguyễn Tri Phương, Phường 8, Quận 5' },
+          { name: 'Bún Thịt Nướng Kiều Bảo', address: '139 Đề Thám, Phường Cô Giang, Quận 1' },
+          { name: 'Bún Thịt Nướng Hoàng Văn', address: '137 Chấn Hưng, Phường 6, Tân Bình' }
+        ]
+      },
+      {
+        id: 'hcm-trua-2',
+        name: 'Bún Đậu Mắm Tôm',
+        mealTypes: ['trua', 'toi'],
+        locations: [
+          { name: 'Bún Đậu A Chảnh', address: '367 Thành Thái, Phường 14, Quận 10' },
+          { name: 'Bún Đậu Mạc Văn Khoa', address: '253 Phan Xích Long, Phường 7, Phú Nhuận' },
+          { name: 'Bún Đậu Homemade', address: '1 Nguyễn Văn Tráng, Bến Thành, Quận 1' },
+          { name: 'Bún Đậu Cống Quỳnh', address: '153/1 Cống Quỳnh, Nguyễn Cư Trinh, Quận 1' }
+        ]
+      },
+      {
+        id: 'hcm-trua-3',
+        name: 'Cơm Niêu Sài Gòn',
+        mealTypes: ['trua', 'toi'],
+        locations: [
+          { name: 'Cơm Niêu Sài Gòn Tú Xương', address: '27 Tú Xương, Phường 7, Quận 3' },
+          { name: 'Cơm Niêu Thiên Lý', address: '120 Cao Thắng, Phường 4, Quận 3' },
+          { name: 'Cơm Niêu Panda', address: '200 Nguyễn Thị Thập, Bình Thuận, Quận 7' }
+        ]
+      },
+      {
+        id: 'hcm-trua-4',
+        name: 'Cơm Gà Xối Mỡ',
+        mealTypes: ['trua', 'toi'],
+        locations: [
+          { name: 'Cơm Gà Xối Mỡ 142', address: '142 Ba Đình, Phường 10, Quận 8' },
+          { name: 'Cơm Gà Xối Mỡ Su Su', address: '117/14 Cống Quỳnh, Nguyễn Cư Trinh, Quận 1' },
+          { name: 'Cơm Gà Lão Hương Thân', address: '402 Trần Phú, Phường 7, Quận 5' }
+        ]
+      },
+      {
+        id: 'hcm-trua-5',
+        name: 'Bún Mắm Miền Tây',
+        mealTypes: ['trua', 'toi'],
+        locations: [
+          { name: 'Bún Mắm 173 Cô Giang', address: '173 Cô Giang, Phường Cô Giang, Quận 1' },
+          { name: 'Bún Mắm 444', address: '375 Lê Quang Định, Phường 5, Bình Thạnh' },
+          { name: 'Bún Mắm Sáu Kèn', address: 'Hẻm 412 Châu Văn Liêm, Phường 14, Quận 5' }
+        ]
+      },
+      {
+        id: 'hcm-trua-6',
+        name: 'Bánh Xèo & Bánh Khọt',
+        mealTypes: ['trua', 'toi'],
+        locations: [
+          { name: 'Bánh Xèo Ăn Là Ghiền', address: '74 Sương Nguyệt Ánh, Bến Thành, Quận 1' },
+          { name: 'Bánh Khọt Cô Ba Vũng Tàu', address: '102 Cao Thắng, Phường 4, Quận 3' },
+          { name: 'Bánh Xèo Tôm Nhảy Cô Ba', address: '76 Nguyễn Thị Thập, Tân Hưng, Quận 7' }
+        ]
+      },
+      {
+        id: 'hcm-trua-7',
+        name: 'Bún Chả Sài Gòn',
+        mealTypes: ['trua'],
+        locations: [
+          { name: 'Bún Chả Ánh Hồng', address: '140b Lý Chính Thắng, Phường 7, Quận 3' },
+          { name: 'Bún Chả Hoa Đông', address: '121 Lý Tự Trọng, P. Bến Thành, Quận 1' },
+          { name: 'Bún Chả Hồ Gươm', address: '135 Võ Văn Tần, Phường 6, Quận 3' }
+        ]
+      },
+      {
+        id: 'hcm-trua-8',
+        name: 'Cơm Thố Chợ Lớn',
+        mealTypes: ['trua', 'toi'],
+        locations: [
+          { name: 'Cơm Thố Chuyên Ký', address: '65 Tôn Thất Đạm, Bến Nghé, Quận 1' },
+          { name: 'Tân Nhã Quán', address: '100 Trần Hưng Đạo B, Phường 7, Quận 5' },
+          { name: 'Quán Triều Châu', address: '355 An Dương Vương, Phường 3, Quận 5' }
+        ]
+      },
+
+      // ========== CHIỀU / TỐI TẠI TP.HCM ==========
+      {
+        id: 'hcm-toi-1',
+        name: 'Ốc & Hải Sản Sài Gòn',
+        mealTypes: ['toi'],
+        locations: [
+          { name: 'Ốc Đào Nguyễn Trãi', address: '212B/C79 Nguyễn Trãi, Nguyễn Cư Trinh, Quận 1' },
+          { name: 'Ốc Oanh Vĩnh Khánh', address: '534 Vĩnh Khánh, Phường 8, Quận 4' },
+          { name: 'Ốc Khánh', address: '25/5 Nguyễn Bỉnh Khiêm, P. Bến Nghé, Quận 1' },
+          { name: 'Ốc Như', address: '650/4/29 Điện Biên Phủ, Phường 11, Quận 10' },
+          { name: 'Ốc Nho Quận 4', address: '178 Lê Quốc Hưng, Phường 12, Quận 4' }
+        ]
+      },
+      {
+        id: 'hcm-toi-2',
+        name: 'Lẩu Bò Sài Gòn',
+        mealTypes: ['toi'],
+        locations: [
+          { name: 'Lẩu Bò Hoàng Thu Hồ Thị Kỷ', address: '84/1 Hồ Thị Kỷ, Phường 1, Quận 10' },
+          { name: 'Lẩu Bò Cô Thảo', address: 'Hẻm 84 Hồ Thị Kỷ, Phường 1, Quận 10' },
+          { name: 'Lẩu Bò Tí Chuột', address: '1-3 Cao Bá Nhạ, Nguyễn Cư Trinh, Quận 1' },
+          { name: 'Lẩu Bò Nghĩa Địa Gò Vấp', address: '498/41 Lê Quang Định, Phường 1, Gò Vấp' }
+        ]
+      },
+      {
+        id: 'hcm-toi-3',
+        name: 'Lẩu Dê & Dê Nướng',
+        mealTypes: ['toi'],
+        locations: [
+          { name: 'Lẩu Dê 404', address: '436 Nguyễn Thị Thập, Tân Quy, Quận 7' },
+          { name: 'Lẩu Dê Trương Định', address: '105 Trương Định, Phường 6, Quận 3' },
+          { name: 'Lẩu Dê Đồng Quê', address: '217 Nguyễn Hồng Đào, Phường 14, Tân Bình' }
+        ]
+      },
+      {
+        id: 'hcm-toi-4',
+        name: 'Phá Lấu Bò & Bánh Mì',
+        mealTypes: ['trua', 'toi'],
+        locations: [
+          { name: 'Phá Lấu Bò Cô Thảo Q.4', address: '243/29G Tôn Đản, Phường 15, Quận 4' },
+          { name: 'Phá Lấu Bò Dũng', address: '90 Ba Đình, Phường 10, Quận 8' },
+          { name: 'Phá Lấu Bò Chợ Bàn Cờ', address: '51/24B Cao Thắng, Phường 3, Quận 3' },
+          { name: 'Phá Lấu Bò Marie Curie', address: '433/44 Lê Đại Hành, Phường 11, Quận 11' }
+        ]
+      },
+      {
+        id: 'hcm-toi-5',
+        name: 'Gà Nướng Muối Ớt',
+        mealTypes: ['toi'],
+        locations: [
+          { name: 'Gà Nướng Cái Bang', address: '48/40 Hồ Biểu Chánh, Phường 11, Phú Nhuận' },
+          { name: 'Gà Nướng Ò Ó O', address: '212 Nguyễn Hồng Đào, Phường 14, Tân Bình' },
+          { name: 'Gà Nướng Việt Hương', address: '449A Trần Phú, Phường 7, Quận 5' }
+        ]
+      },
+      {
+        id: 'hcm-toi-6',
+        name: 'Lẩu Haidilao Hotpot',
+        mealTypes: ['trua', 'toi'],
+        locations: [
+          { name: 'Haidilao Vincom Đồng Khởi', address: '72 Lê Thánh Tôn, Bến Nghé, Quận 1' },
+          { name: 'Haidilao Landmark 81', address: '720A Điện Biên Phủ, Phường 22, Bình Thạnh' },
+          { name: 'Haidilao Vạn Hạnh Mall', address: '11 Sư Vạn Hạnh, Phường 12, Quận 10' }
+        ]
+      },
+      {
+        id: 'hcm-toi-7',
+        name: "Pizza 4P's Sài Gòn",
+        mealTypes: ['trua', 'toi'],
+        locations: [
+          { name: "Pizza 4P's Lê Thánh Tôn", address: '8/15 Lê Thánh Tôn, Bến Nghé, Quận 1' },
+          { name: "Pizza 4P's Hai Bà Trưng", address: '151 Hai Bà Trưng, Phường 6, Quận 3' },
+          { name: "Pizza 4P's Saigon Pearl", address: '92 Nguyễn Hữu Cảnh, Phường 22, Bình Thạnh' }
+        ]
+      },
+      {
+        id: 'hcm-toi-8',
+        name: 'Bò Tơ Củ Chi',
+        mealTypes: ['toi'],
+        locations: [
+          { name: 'Bò Tơ Quán Mộc', address: '43-45 Nguyễn Thị Thập, Tân Hưng, Quận 7' },
+          { name: 'Bò Tơ Năm Sánh', address: '86B Phạm Hùng, Bình Hưng, Bình Chánh' },
+          { name: 'Bò Tơ Củ Chi Xuân Đào', address: 'Khu phố 2, QL22, Củ Chi, TP.HCM' }
+        ]
+      },
+      {
+        id: 'hcm-toi-9',
+        name: 'Ăn Vặt Bánh Tráng Trộn',
+        mealTypes: ['toi'],
+        locations: [
+          { name: 'Bánh Tráng Trộn Chú Viên', address: '38 Nguyễn Thượng Hiền, Phường 5, Quận 3' },
+          { name: 'Bánh Tráng Nướng Hồ Con Rùa', address: 'Công Trường Quốc Tế, Phường 6, Quận 3' },
+          { name: 'Ăn Vặt Hẻm 20 Thước', address: 'Bến Vân Đồn, Phường 9, Quận 4' },
+          { name: 'Bánh Tráng Cuốn Bà Bắc', address: '40/11 Trần Văn Đang, Phường 9, Quận 3' }
+        ]
+      },
+      {
+        id: 'hcm-toi-10',
+        name: 'Chè Mâm & Chè Chợ Lớn',
+        mealTypes: ['toi'],
+        locations: [
+          { name: 'Chè Hà Ký', address: '138 Châu Văn Liêm, Phường 11, Quận 5' },
+          { name: 'Chè Mâm Khánh Vy', address: '242B Sư Vạn Hạnh, Phường 2, Quận 10' },
+          { name: 'Chè Tường Phong', address: '83 An Điềm, Phường 10, Quận 5' }
+        ]
+      }
+    ];
+
+    const STORAGE_KEY = 'hom_nay_an_gi_dishes_hcm_v2';
+    const FIREBASE_CONFIG_KEY = 'hom_nay_an_gi_firebase_config_v1';
+
+    // Cấu hình Firebase Realtime Database (Người dùng nhập qua modal trên web)
+    const DEFAULT_FIREBASE_CONFIG = null;
+
+    // Bảng màu cho các lát cắt của vòng quay
+    const SLICE_COLORS = [
+      '#f97316', // Orange
+      '#ec4899', // Pink
+      '#06b6d4', // Cyan
+      '#8b5cf6', // Purple
+      '#10b981', // Emerald
+      '#f59e0b', // Amber
+      '#3b82f6', // Blue
+      '#ef4444', // Red
+      '#14b8a6', // Teal
+      '#6366f1', // Indigo
+      '#84cc16', // Lime
+      '#d946ef'  // Fuchsia
+    ];
+
+    /**
+     * STATE MANAGEMENT
+     */
+    let dishes = [];
+    let currentMeal = 'sang'; // 'sang' | 'trua' | 'toi'
+    let isSpinning = false;
+    let currentRotation = 0; // radian
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    // Firebase state
+    let firebaseDb = null;
+    let isFirebaseConnected = false;
+
+    /**
+     * DOM ELEMENTS
+     */
+    const wheelCanvas = document.getElementById('wheelCanvas');
+    const ctx = wheelCanvas.getContext('2d');
+    const mainSpinBtn = document.getElementById('mainSpinBtn');
+    const centerSpinBtn = document.getElementById('centerSpinBtn');
+    const wheelStatusMessage = document.getElementById('wheelStatusMessage');
+    const activeWheelCount = document.getElementById('activeWheelCount');
+    const currentMealHeading = document.getElementById('currentMealHeading');
+    const currentMealSubheading = document.getElementById('currentMealSubheading');
+    const currentListCategoryName = document.getElementById('currentListCategoryName');
+    const currentListTotalBadge = document.getElementById('currentListTotalBadge');
+    const dishItemsContainer = document.getElementById('dishItemsContainer');
+    const emptyListState = document.getElementById('emptyListState');
+    const searchDishInput = document.getElementById('searchDishInput');
+    const addDishForm = document.getElementById('addDishForm');
+    const dishNameInput = document.getElementById('dishNameInput');
+    const dishLocationsInput = document.getElementById('dishLocationsInput');
+    const resetDefaultsBtn = document.getElementById('resetDefaultsBtn');
+    const liveClockText = document.getElementById('liveClockText');
+    const autoActiveText = document.getElementById('autoActiveText');
+    const toggleSoundBtn = document.getElementById('toggleSoundBtn');
+    const soundOnIcon = document.getElementById('soundOnIcon');
+    const soundOffIcon = document.getElementById('soundOffIcon');
+    const dataSaveModeBadge = document.getElementById('dataSaveModeBadge');
+
+    // Cloud / Firebase Elements
+    const openFirebaseModalBtn = document.getElementById('openFirebaseModalBtn');
+    const firebaseModal = document.getElementById('firebaseModal');
+    const closeFirebaseModalBtn = document.getElementById('closeFirebaseModalBtn');
+    const firebaseConfigTextarea = document.getElementById('firebaseConfigTextarea');
+    const saveFirebaseConfigBtn = document.getElementById('saveFirebaseConfigBtn');
+    const disconnectFirebaseBtn = document.getElementById('disconnectFirebaseBtn');
+    const cloudStatusDot = document.getElementById('cloudStatusDot');
+    const cloudStatusText = document.getElementById('cloudStatusText');
+
+    // Modal Elements
+    const resultModal = document.getElementById('resultModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const modalDishName = document.getElementById('modalDishName');
+    const modalMealBadge = document.getElementById('modalMealBadge');
+    const modalLocationsCount = document.getElementById('modalLocationsCount');
+    const modalLocationsList = document.getElementById('modalLocationsList');
+    const modalNearbySearchLink = document.getElementById('modalNearbySearchLink');
+    const modalSpinAgainBtn = document.getElementById('modalSpinAgainBtn');
+
+    /**
+     * WEB AUDIO API TICK SOUND
+     */
+    function playTickSound() {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(650, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.04);
+
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.04);
+      } catch (e) {}
+    }
+
+    function playWinSound() {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.1 + 0.35);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + i * 0.1);
+          osc.stop(audioCtx.currentTime + i * 0.1 + 0.35);
+        });
+      } catch (e) {}
+    }
+
+    /**
+     * 1. FIREBASE REALTIME DATABASE SYNC ENGINE
+     */
+    function initFirebaseIfConfigured() {
+      let configObj = null;
+      const savedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
+
+      if (savedConfig === 'DISABLED') {
+        // Người dùng chủ động tắt kết nối Cloud
+        setCloudStatus(false);
+        loadDishesFromLocal();
+        return;
+      }
+
+      if (savedConfig) {
+        configObj = parseFirebaseConfig(savedConfig);
+      } else if (typeof DEFAULT_FIREBASE_CONFIG === 'object' && DEFAULT_FIREBASE_CONFIG.databaseURL) {
+        // Tự động kết nối với cấu hình Firebase mặc định của dự án
+        configObj = DEFAULT_FIREBASE_CONFIG;
+      }
+
+      if (!configObj || !configObj.databaseURL) {
+        setCloudStatus(false);
+        loadDishesFromLocal();
+        return;
+      }
+
+      try {
+        if (!window.FirebaseSDK) {
+          // Chờ SDK load nếu chưa sẵn sàng
+          setTimeout(initFirebaseIfConfigured, 300);
+          return;
+        }
+
+        const { initializeApp, getDatabase, ref, set, onValue } = window.FirebaseSDK;
+        const app = initializeApp(configObj, "foodWheelApp" + Date.now());
+        firebaseDb = getDatabase(app);
+
+        const dishesRef = ref(firebaseDb, "shared_dishes");
+
+        // Lắng nghe dữ liệu realtime từ Firebase
+        onValue(dishesRef, (snapshot) => {
+          const cloudData = snapshot.val();
+          if (Array.isArray(cloudData) && cloudData.length > 0) {
+            dishes = cloudData;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dishes));
+            updateMealTabsUI();
+          } else {
+            // Lần đầu database rỗng: đẩy dữ liệu hiện tại lên
+            if (dishes.length === 0) {
+              loadDishesFromLocal();
+            }
+            saveDishes(true);
+          }
+        }, (error) => {
+          console.error("Firebase Realtime Error:", error);
+          showToast("Lỗi đồng bộ Firebase. Đang dùng LocalStorage", "error");
+          setCloudStatus(false);
+        });
+
+        isFirebaseConnected = true;
+        setCloudStatus(true);
+        showToast("Đã kết nối Firebase Realtime! Mọi người đang dùng chung thực đơn", "success");
+      } catch (e) {
+        console.error("Lỗi khởi tạo Firebase:", e);
+        setCloudStatus(false);
+        loadDishesFromLocal();
+      }
+    }
+
+    function setCloudStatus(connected) {
+      isFirebaseConnected = connected;
+      if (connected) {
+        cloudStatusDot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+        cloudStatusText.textContent = "Firebase Realtime";
+        dataSaveModeBadge.textContent = "Cloud Shared 🔥";
+        dataSaveModeBadge.className = "text-[11px] font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30";
+      } else {
+        cloudStatusDot.className = "w-2 h-2 rounded-full bg-slate-500";
+        cloudStatusText.textContent = "LocalStorage";
+        dataSaveModeBadge.textContent = "LocalStorage";
+        dataSaveModeBadge.className = "text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20";
+      }
+    }
+
+    function parseFirebaseConfig(rawText) {
+      if (typeof rawText !== 'string') return null;
+      // Nếu là JSON thuần
+      try {
+        return JSON.parse(rawText);
+      } catch (e) {}
+
+      // Nếu người dùng dán `const firebaseConfig = { ... };`
+      const match = rawText.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          // Đổi dạng object JS sang JSON
+          const jsonText = match[0]
+            .replace(/([a-zA-Z0-9_]+)\s*:/g, '"$1":')
+            .replace(/'/g, '"')
+            .replace(/,\s*\}/g, '}');
+          return JSON.parse(jsonText);
+        } catch (e) {
+          // Thử eval an toàn hơn cho object literal
+          return (new Function("return " + match[0]))();
+        }
+      }
+      return null;
+    }
+
+    /**
+     * 2. LOAD & SAVE DISHES (LOCAL & CLOUD)
+     */
+    function loadDishesFromLocal() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          dishes = JSON.parse(stored);
+        } catch (e) {
+          console.error("Lỗi đọc localStorage:", e);
+          dishes = JSON.parse(JSON.stringify(DEFAULT_DISHES_HCM));
+          saveDishesLocally();
+        }
+      } else {
+        dishes = JSON.parse(JSON.stringify(DEFAULT_DISHES_HCM));
+        saveDishesLocally();
+      }
+    }
+
+    function saveDishesLocally() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dishes));
+    }
+
+    function saveDishes(skipLocal = false) {
+      if (!skipLocal) {
+        saveDishesLocally();
+      }
+
+      // Đẩy lên Firebase nếu đang kết nối
+      if (isFirebaseConnected && firebaseDb && window.FirebaseSDK) {
+        try {
+          const { ref, set } = window.FirebaseSDK;
+          const dishesRef = ref(firebaseDb, "shared_dishes");
+          set(dishesRef, dishes).catch(err => {
+            console.error("Lỗi lưu lên Firebase:", err);
+            showToast("Lỗi đẩy lên Cloud, đã lưu cục bộ", "warning");
+          });
+        } catch (e) {
+          console.error("Lỗi gọi Firebase set:", e);
+        }
+      }
+    }
+
+    /**
+     * 3. NHẬN DIỆN THỜI GIAN HIỆN TẠI & AUTO SELECT TAB
+     */
+    function detectMealByCurrentTime() {
+      const now = new Date();
+      const hours = now.getHours() + now.getMinutes() / 60;
+      let detected = 'sang';
+      let name = 'Bữa Sáng';
+
+      if (hours >= 5.0 && hours < 10.5) {
+        detected = 'sang';
+        name = 'Bữa Sáng (5h - 10h30)';
+      } else if (hours >= 10.5 && hours < 14.5) {
+        detected = 'trua';
+        name = 'Bữa Trưa (10h30 - 14h30)';
+      } else {
+        detected = 'toi';
+        name = 'Bữa Chiều / Tối (14h30 - 23h)';
+      }
+      return { detected, name };
+    }
+
+    function updateLiveClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      if (liveClockText) liveClockText.textContent = timeStr;
+    }
+
+    /**
+     * 4. LỌC DANH SÁCH MÓN ĂN THEO TAB
+     */
+    function getActiveDishes() {
+      return dishes.filter(d => Array.isArray(d.mealTypes) && d.mealTypes.includes(currentMeal));
+    }
+
+    /**
+     * 5. VẼ VÒNG QUAY MAY MẮN (CANVAS API)
+     */
+    function resizeCanvasForHiDPI() {
+      const rect = wheelCanvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const size = Math.min(rect.width, rect.height) || 400;
+
+      wheelCanvas.width = size * dpr;
+      wheelCanvas.height = size * dpr;
+      ctx.scale(dpr, dpr);
+      return size;
+    }
+
+    function drawWheel() {
+      const size = resizeCanvasForHiDPI();
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const radius = size / 2 - 14;
+
+      ctx.clearRect(0, 0, size, size);
+
+      const activeList = getActiveDishes();
+      const numSlices = activeList.length;
+
+      if (numSlices === 0) {
+        drawEmptyWheel(centerX, centerY, radius, "Chưa có món ăn nào!");
+        return;
+      }
+
+      const sliceAngle = (2 * Math.PI) / numSlices;
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(currentRotation);
+
+      // 1. Vẽ các lát cắt
+      for (let i = 0; i < numSlices; i++) {
+        const startAngle = i * sliceAngle;
+        const endAngle = startAngle + sliceAngle;
+        const color = SLICE_COLORS[i % SLICE_COLORS.length];
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // 2. Vẽ chữ tên món ăn
+        ctx.save();
+        ctx.rotate(startAngle + sliceAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffffff';
+
+        let fontSize = Math.max(11, Math.min(15, Math.floor(300 / (numSlices + 6))));
+        ctx.font = `bold ${fontSize}px "Be Vietnam Pro", sans-serif`;
+
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
+        let name = activeList[i].name;
+        const maxTextWidth = radius - 75;
+        if (ctx.measureText(name).width > maxTextWidth) {
+          while (name.length > 3 && ctx.measureText(name + '...').width > maxTextWidth) {
+            name = name.slice(0, -1);
+          }
+          name += '...';
+        }
+
+        ctx.fillText(name, radius - 20, 0);
+        ctx.restore();
+      }
+
+      ctx.restore();
+
+      // 3. Vành ngoài ánh kim & bóng đèn LED
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + 2, 0, 2 * Math.PI);
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = '#334155';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + 7, 0, 2 * Math.PI);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#f97316';
+      ctx.stroke();
+
+      const numBulbs = Math.max(16, numSlices * 2);
+      for (let b = 0; b < numBulbs; b++) {
+        const bAngle = (b * (2 * Math.PI)) / numBulbs;
+        const bx = centerX + (radius + 2) * Math.cos(bAngle);
+        const by = centerY + (radius + 2) * Math.sin(bAngle);
+
+        ctx.beginPath();
+        ctx.arc(bx, by, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = (b % 2 === 0) ? '#fef08a' : '#ffffff';
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 6;
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawEmptyWheel(centerX, centerY, radius, message) {
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 15px "Be Vietnam Pro", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(message, centerX, centerY - 15);
+      ctx.font = '12px "Be Vietnam Pro", sans-serif';
+      ctx.fillText("Thêm ít nhất 2 món để quay", centerX, centerY + 15);
+    }
+
+    /**
+     * 6. HIỆU ỨNG QUAY THƯỞNG (EASE-OUT QUARTIC)
+     */
+    function spinWheel() {
+      if (isSpinning) return;
+
+      const activeList = getActiveDishes();
+      if (activeList.length < 2) {
+        showToast("Cần ít nhất 2 món ăn trong bữa này để bắt đầu quay!", "warning");
+        return;
+      }
+
+      isSpinning = true;
+      mainSpinBtn.disabled = true;
+      centerSpinBtn.disabled = true;
+      mainSpinBtn.classList.add('opacity-60', 'cursor-not-allowed');
+      wheelStatusMessage.textContent = "Đang quay may mắn... Vũ trụ đang chọn món ngon Sài Gòn!";
+      wheelStatusMessage.classList.add('text-brand-400');
+
+      const winningIndex = Math.floor(Math.random() * activeList.length);
+      const winningDish = activeList[winningIndex];
+
+      const numSlices = activeList.length;
+      const sliceAngle = (2 * Math.PI) / numSlices;
+
+      const pointerAngle = 1.5 * Math.PI; // Kim ở đỉnh 12h
+      const sliceCenterInWheel = winningIndex * sliceAngle + (sliceAngle / 2);
+      
+      const fullRotations = 6 + Math.floor(Math.random() * 3);
+      
+      const startAngle = currentRotation % (2 * Math.PI);
+      let targetDelta = (pointerAngle - sliceCenterInWheel - startAngle);
+      while (targetDelta < 0) {
+        targetDelta += 2 * Math.PI;
+      }
+      const totalDistance = fullRotations * 2 * Math.PI + targetDelta;
+      const finalAngle = currentRotation + totalDistance;
+
+      const duration = 3800;
+      const startTime = performance.now();
+      const initialRotation = currentRotation;
+
+      let lastSlicePassed = -1;
+
+      function easeOutQuart(x) {
+        return 1 - Math.pow(1 - x, 4);
+      }
+
+      function animateSpin(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = easeOutQuart(progress);
+
+        currentRotation = initialRotation + totalDistance * ease;
+        drawWheel();
+
+        const normalizedAngle = (currentRotation % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+        const currentSliceUnderPointer = Math.floor(
+          ((pointerAngle - normalizedAngle + 2 * Math.PI) % (2 * Math.PI)) / sliceAngle
+        );
+        if (currentSliceUnderPointer !== lastSlicePassed) {
+          playTickSound();
+          lastSlicePassed = currentSliceUnderPointer;
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animateSpin);
+        } else {
+          currentRotation = finalAngle;
+          drawWheel();
+          isSpinning = false;
+          mainSpinBtn.disabled = false;
+          centerSpinBtn.disabled = false;
+          mainSpinBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+          wheelStatusMessage.textContent = `Vũ trụ đã chọn món: ${winningDish.name}!`;
+
+          playWinSound();
+          launchConfetti();
+          setTimeout(() => {
+            showResultModal(winningDish);
+          }, 350);
+        }
+      }
+
+      requestAnimationFrame(animateSpin);
+    }
+
+    /**
+     * 7. PHÁO HOA GIẤY (CANVAS CONFETTI)
+     */
+    function launchConfetti() {
+      if (typeof confetti !== 'function') return;
+
+      const count = 200;
+      const defaults = { origin: { y: 0.7 } };
+
+      function fire(particleRatio, opts) {
+        confetti(Object.assign({}, defaults, opts, {
+          particleCount: Math.floor(count * particleRatio)
+        }));
+      }
+
+      fire(0.25, { spread: 26, startVelocity: 55 });
+      fire(0.2, { spread: 60 });
+      fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+      fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+      fire(0.1, { spread: 120, startVelocity: 45 });
+    }
+
+    /**
+     * 8. MODAL KẾT QUẢ & HIỂN THỊ DANH SÁCH ĐỊA CHỈ TẠI TP.HCM
+     */
+    function showResultModal(dish) {
+      modalDishName.textContent = dish.name;
+
+      const mealNames = {
+        sang: '🌅 Món ăn Bữa Sáng tại TP.HCM',
+        trua: '☀️ Món ăn Bữa Trưa tại TP.HCM',
+        toi: '🌙 Món ăn Chiều / Tối tại TP.HCM'
+      };
+      modalMealBadge.textContent = mealNames[currentMeal] || '🍜 Món ngon tại TP.HCM';
+
+      const nearbyQuery = `${dish.name} TP.HCM gần đây`;
+      modalNearbySearchLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nearbyQuery)}`;
+
+      const locations = Array.isArray(dish.locations) && dish.locations.length > 0 
+        ? dish.locations 
+        : [{ name: dish.name, address: 'TP. Hồ Chí Minh' }];
+
+      modalLocationsCount.textContent = `${locations.length} quán`;
+      modalLocationsList.innerHTML = '';
+
+      locations.forEach((loc, index) => {
+        const fullQuery = `${loc.name} ${loc.address}`.trim();
+        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullQuery)}`;
+
+        const card = document.createElement('div');
+        card.className = 'group flex items-center justify-between p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-brand-500/50 transition duration-150 text-left';
+        
+        card.innerHTML = `
+          <div class="flex items-start space-x-3 min-w-0 pr-2">
+            <div class="w-7 h-7 rounded-lg bg-brand-500/20 text-brand-400 border border-brand-500/30 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+              ${index + 1}
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-sm font-bold text-white group-hover:text-brand-300 transition truncate">
+                ${escapeHtml(loc.name)}
+              </h4>
+              <p class="text-xs text-slate-300 truncate mt-0.5" title="${escapeHtml(loc.address)}">
+                📍 ${escapeHtml(loc.address)}
+              </p>
+            </div>
+          </div>
+
+          <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0 inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500 text-sky-300 hover:text-white font-bold text-xs border border-sky-500/30 transition transform active:scale-95">
+            <span>Chỉ đường</span>
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/>
+            </svg>
+          </a>
+        `;
+
+        modalLocationsList.appendChild(card);
+      });
+
+      resultModal.classList.remove('modal-enter');
+      resultModal.classList.add('modal-show');
+    }
+
+    function hideResultModal() {
+      resultModal.classList.remove('modal-show');
+      resultModal.classList.add('modal-enter');
+    }
+
+    /**
+     * 9. RENDER GIAO DIỆN DANH SÁCH & TAB BỮA ĂN
+     */
+    function updateMealTabsUI() {
+      const tabButtons = document.querySelectorAll('.meal-tab-btn');
+      tabButtons.forEach(btn => {
+        const meal = btn.dataset.meal;
+        const count = dishes.filter(d => Array.isArray(d.mealTypes) && d.mealTypes.includes(meal)).length;
+        const badge = btn.querySelector('.meal-count-badge');
+        if (badge) badge.textContent = count;
+
+        if (meal === currentMeal) {
+          btn.className = 'meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-brand-500 to-rose-500 text-white shadow-lg shadow-brand-500/20';
+          if (badge) {
+            badge.className = 'meal-count-badge text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1 bg-white/25 text-white';
+          }
+        } else {
+          btn.className = 'meal-tab-btn flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white transition';
+          if (badge) {
+            badge.className = 'meal-count-badge text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1 bg-slate-900 text-slate-400';
+          }
+        }
+      });
+
+      const titles = {
+        sang: { name: 'Thực Đơn Sáng Sài Gòn', badge: 'BỮA SÁNG TP.HCM', icon: '🌅' },
+        trua: { name: 'Thực Đơn Trưa Sài Gòn', badge: 'BỮA TRƯA TP.HCM', icon: '☀️' },
+        toi:  { name: 'Thực Đơn Chiều / Tối Sài Gòn', badge: 'CHIỀU / TỐI TP.HCM', icon: '🌙' },
+      };
+      const curInfo = titles[currentMeal];
+      currentMealHeading.textContent = `${curInfo.icon} ${curInfo.name}`;
+      currentMealSubheading.textContent = curInfo.badge;
+      currentListCategoryName.textContent = curInfo.name;
+
+      const formCheckboxes = addDishForm.querySelectorAll('input[name="mealCheck"]');
+      formCheckboxes.forEach(cb => {
+        if (cb.value === currentMeal) cb.checked = true;
+      });
+
+      renderDishList();
+      drawWheel();
+    }
+
+    function renderDishList() {
+      const activeList = getActiveDishes();
+      const searchTerm = searchDishInput.value.trim().toLowerCase();
+
+      activeWheelCount.textContent = activeList.length;
+      currentListTotalBadge.textContent = `${activeList.length} món`;
+
+      const filtered = activeList.filter(d => {
+        const matchName = d.name.toLowerCase().includes(searchTerm);
+        const matchLoc = Array.isArray(d.locations) && d.locations.some(l => 
+          (l.name && l.name.toLowerCase().includes(searchTerm)) || 
+          (l.address && l.address.toLowerCase().includes(searchTerm))
+        );
+        return matchName || matchLoc;
+      });
+
+      dishItemsContainer.innerHTML = '';
+
+      if (filtered.length === 0) {
+        emptyListState.classList.remove('hidden');
+        return;
+      } else {
+        emptyListState.classList.add('hidden');
+      }
+
+      filtered.forEach((dish, index) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'group flex flex-col p-3 rounded-2xl bg-slate-950/50 hover:bg-slate-800/60 border border-slate-800/80 hover:border-slate-700 transition duration-150';
+        
+        const tagBadges = (dish.mealTypes || []).map(m => {
+          if (m === 'sang') return '<span class="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-md">Sáng</span>';
+          if (m === 'trua') return '<span class="text-[10px] px-1.5 py-0.5 bg-sky-500/10 text-sky-300 border border-sky-500/20 rounded-md">Trưa</span>';
+          if (m === 'toi')  return '<span class="text-[10px] px-1.5 py-0.5 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-md">Tối</span>';
+          return '';
+        }).join(' ');
+
+        const locationsCount = Array.isArray(dish.locations) ? dish.locations.length : 0;
+        const locationsPreview = Array.isArray(dish.locations) && dish.locations.length > 0 
+          ? dish.locations.map(l => l.name).slice(0, 3).join(', ') + (dish.locations.length > 3 ? '...' : '')
+          : 'TP. Hồ Chí Minh';
+
+        itemEl.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2.5 min-w-0 pr-2">
+              <div class="w-7 h-7 rounded-xl bg-slate-800 flex items-center justify-center font-black text-xs text-brand-400 flex-shrink-0 border border-slate-700/60">
+                ${index + 1}
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                  <h4 class="text-sm font-bold text-slate-100 truncate group-hover:text-brand-300 transition">${escapeHtml(dish.name)}</h4>
+                  <div class="flex space-x-1">${tagBadges}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-1 flex-shrink-0">
+              <!-- Nút Xem nhanh danh sách quán -->
+              <button data-preview-id="${dish.id}" class="preview-dish-btn p-1.5 text-xs text-sky-400 hover:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 rounded-lg border border-sky-500/20 transition flex items-center gap-1 cursor-pointer" title="Xem danh sách quán gợi ý">
+                <span>${locationsCount} quán</span>
+              </button>
+
+              <!-- Nút Xoá -->
+              <button data-delete-id="${dish.id}" class="delete-dish-btn p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition cursor-pointer" title="Xoá món này">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Preview các quán -->
+          <p class="text-xs text-slate-400 mt-1 truncate pl-9" title="${escapeHtml(locationsPreview)}">
+            📍 <span class="text-slate-300 font-medium">Gợi ý:</span> ${escapeHtml(locationsPreview)}
+          </p>
+        `;
+
+        dishItemsContainer.appendChild(itemEl);
+      });
+
+      // Gắn sự kiện Xóa
+      dishItemsContainer.querySelectorAll('.delete-dish-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.getAttribute('data-delete-id');
+          deleteDish(id);
+        });
+      });
+
+      // Gắn sự kiện Xem nhanh các quán của món
+      dishItemsContainer.querySelectorAll('.preview-dish-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.getAttribute('data-preview-id');
+          const dish = dishes.find(d => d.id === id);
+          if (dish) showResultModal(dish);
+        });
+      });
+    }
+
+    /**
+     * 10. THÊM / XOÁ MÓN ĂN & KHÔI PHỤC DỮ LIỆU CHUẨN TP.HCM
+     */
+    function addDish(e) {
+      e.preventDefault();
+      const name = dishNameInput.value.trim();
+      const rawLocations = dishLocationsInput.value.trim();
+
+      const checkedMeals = Array.from(addDishForm.querySelectorAll('input[name="mealCheck"]:checked'))
+        .map(cb => cb.value);
+
+      if (!name) {
+        showToast("Vui lòng nhập tên món ăn!", "error");
+        dishNameInput.focus();
+        return;
+      }
+      if (!rawLocations) {
+        showToast("Vui lòng nhập ít nhất một quán & địa chỉ tại TP.HCM!", "error");
+        dishLocationsInput.focus();
+        return;
+      }
+      if (checkedMeals.length === 0) {
+        showToast("Hãy chọn ít nhất 1 bữa ăn phù hợp (Sáng, Trưa hoặc Tối)!", "warning");
+        return;
+      }
+
+      const lines = rawLocations.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const parsedLocations = lines.map(line => {
+        let locName = line;
+        let locAddress = 'TP. Hồ Chí Minh';
+        if (line.includes(' - ')) {
+          const parts = line.split(' - ');
+          locName = parts[0].trim();
+          locAddress = parts.slice(1).join(' - ').trim();
+        } else if (line.includes(': ')) {
+          const parts = line.split(': ');
+          locName = parts[0].trim();
+          locAddress = parts.slice(1).join(': ').trim();
+        } else if (line.includes(',')) {
+          const parts = line.split(',');
+          locName = parts[0].trim();
+          locAddress = parts.slice(1).join(',').trim();
+        }
+        return { name: locName, address: locAddress };
+      });
+
+      const newDish = {
+        id: 'hcm-custom-' + Date.now(),
+        name: name,
+        mealTypes: checkedMeals,
+        locations: parsedLocations
+      };
+
+      dishes.unshift(newDish);
+      saveDishes();
+
+      dishNameInput.value = '';
+      dishLocationsInput.value = '';
+
+      showToast(`Đã thêm món "${name}" thành công!`, "success");
+      updateMealTabsUI();
+    }
+
+    function deleteDish(id) {
+      const target = dishes.find(d => d.id === id);
+      if (!target) return;
+
+      if (confirm(`Bạn có chắc muốn xoá "${target.name}" khỏi thực đơn?`)) {
+        dishes = dishes.filter(d => d.id !== id);
+        saveDishes();
+        showToast(`Đã xoá món "${target.name}"!`, "info");
+        updateMealTabsUI();
+      }
+    }
+
+    function resetDefaultDishes() {
+      if (confirm("Khôi phục trọn bộ thực đơn món ăn & quán ngon nổi tiếng chuẩn TP.HCM?")) {
+        dishes = JSON.parse(JSON.stringify(DEFAULT_DISHES_HCM));
+        saveDishes();
+        showToast("Đã khôi phục thực đơn đặc sắc TP.HCM thành công!", "success");
+        updateMealTabsUI();
+      }
+    }
+
+    /**
+     * 11. XỬ LÝ CẤU HÌNH FIREBASE MODAL
+     */
+    function showFirebaseModal() {
+      const savedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
+      if (savedConfig && savedConfig !== 'DISABLED') {
+        firebaseConfigTextarea.value = savedConfig;
+      } else if (!savedConfig && typeof DEFAULT_FIREBASE_CONFIG === 'object') {
+        firebaseConfigTextarea.value = JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
+      }
+      firebaseModal.classList.remove('modal-enter');
+      firebaseModal.classList.add('modal-show');
+    }
+
+    function hideFirebaseModal() {
+      firebaseModal.classList.remove('modal-show');
+      firebaseModal.classList.add('modal-enter');
+    }
+
+    function saveFirebaseConfig() {
+      const rawText = firebaseConfigTextarea.value.trim();
+      if (!rawText) {
+        showToast("Vui lòng dán đoạn mã firebaseConfig!", "error");
+        return;
+      }
+
+      try {
+        const parsed = parseFirebaseConfig(rawText);
+        if (!parsed || !parsed.databaseURL) {
+          showToast("Cấu hình không hợp lệ hoặc thiếu databaseURL (vào Realtime Database tạo database trước)!", "error");
+          return;
+        }
+
+        localStorage.setItem(FIREBASE_CONFIG_KEY, rawText);
+        hideFirebaseModal();
+        showToast("Đang kết nối tới Firebase...", "info");
+        initFirebaseIfConfigured();
+      } catch (e) {
+        showToast("Lỗi định dạng cấu hình: " + e.message, "error");
+      }
+    }
+
+    function disconnectFirebase() {
+      localStorage.setItem(FIREBASE_CONFIG_KEY, 'DISABLED');
+      firebaseDb = null;
+      setCloudStatus(false);
+      hideFirebaseModal();
+      showToast("Đã chuyển về chế độ LocalStorage trên máy", "info");
+    }
+
+    /**
+     * 12. TOAST NOTIFICATION
+     */
+    function showToast(message, type = 'info') {
+      const toastContainer = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      let border = 'border-slate-700 bg-slate-900 text-slate-200';
+      let icon = 'ℹ️';
+
+      if (type === 'success') {
+        border = 'border-emerald-500/40 bg-emerald-950/90 text-emerald-100';
+        icon = '✅';
+      } else if (type === 'error') {
+        border = 'border-rose-500/40 bg-rose-950/90 text-rose-100';
+        icon = '⚠️';
+      } else if (type === 'warning') {
+        border = 'border-amber-500/40 bg-amber-950/90 text-amber-100';
+        icon = '🔔';
+      }
+
+      toast.className = `flex items-center space-x-2.5 px-4 py-3 rounded-2xl border ${border} shadow-2xl text-xs font-semibold backdrop-blur-md transform transition-all duration-300 translate-y-3 opacity-0 pointer-events-auto`;
+      toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
+
+      toastContainer.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-3', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-3', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        }[m];
+      });
+    }
+
+    /**
+     * 13. KHỞI TẠO VÀ GẮN SỰ KIỆN
+     */
+    function init() {
+      // 1. Khởi tạo dữ liệu (Ưu tiên Firebase Realtime nếu đã lưu config, fallback LocalStorage)
+      initFirebaseIfConfigured();
+
+      // 2. Nhận diện giờ hiện tại
+      const { detected, name } = detectMealByCurrentTime();
+      currentMeal = detected;
+      autoActiveText.textContent = `Tự động chọn ${name}`;
+
+      updateLiveClock();
+      setInterval(updateLiveClock, 1000);
+
+      // 3. Tab chuyển bữa
+      document.querySelectorAll('.meal-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (isSpinning) return;
+          currentMeal = btn.dataset.meal;
+          updateMealTabsUI();
+        });
+      });
+
+      // 4. Quay bánh xe
+      mainSpinBtn.addEventListener('click', spinWheel);
+      centerSpinBtn.addEventListener('click', spinWheel);
+      wheelCanvas.addEventListener('click', spinWheel);
+
+      // 5. Thêm / tìm / reset
+      addDishForm.addEventListener('submit', addDish);
+      searchDishInput.addEventListener('input', renderDishList);
+      resetDefaultsBtn.addEventListener('click', resetDefaultDishes);
+
+      // 6. Modal kết quả
+      closeModalBtn.addEventListener('click', hideResultModal);
+      modalSpinAgainBtn.addEventListener('click', () => {
+        hideResultModal();
+        setTimeout(spinWheel, 300);
+      });
+      resultModal.addEventListener('click', (e) => {
+        if (e.target === resultModal) hideResultModal();
+      });
+
+      // 7. Firebase Modal Events
+      openFirebaseModalBtn.addEventListener('click', showFirebaseModal);
+      closeFirebaseModalBtn.addEventListener('click', hideFirebaseModal);
+      saveFirebaseConfigBtn.addEventListener('click', saveFirebaseConfig);
+      disconnectFirebaseBtn.addEventListener('click', disconnectFirebase);
+      firebaseModal.addEventListener('click', (e) => {
+        if (e.target === firebaseModal) hideFirebaseModal();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          hideResultModal();
+          hideFirebaseModal();
+        }
+      });
+
+      // 8. Âm thanh toggle
+      toggleSoundBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        if (soundEnabled) {
+          soundOnIcon.classList.remove('hidden');
+          soundOffIcon.classList.add('hidden');
+          showToast("Đã bật âm thanh", "info");
+          playTickSound();
+        } else {
+          soundOnIcon.classList.add('hidden');
+          soundOffIcon.classList.remove('hidden');
+          showToast("Đã tắt âm thanh", "info");
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        drawWheel();
+      });
+
+      updateMealTabsUI();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
