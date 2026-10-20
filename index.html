@@ -928,10 +928,16 @@
 
     const STORAGE_KEY = 'hom_nay_an_gi_dishes_hcm_v2';
     const FIREBASE_CONFIG_KEY = 'hom_nay_an_gi_firebase_config_v1';
+    const CACHED_API_CONFIG_KEY = 'hom_nay_an_gi_api_config_cache_v1';
     const OLD_ADMIN_PIN_KEY = 'hom_nay_an_gi_admin_pin_v1';
     const ADMIN_PIN_HASH_KEY = 'hom_nay_an_gi_admin_pin_hash_v2';
     // Mã băm SHA-256 mặc định cho PIN '123456'
     const DEFAULT_ADMIN_PIN_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
+
+    // Giới hạn chống spam (Bảo vệ hạn mức gói Free của Firebase & Vercel)
+    const ADD_DISH_COOLDOWN_MS = 5000; // 5 giây giãn cách giữa các lần thêm món
+    const MAX_SHARED_DISHES = 80;      // Tối đa 80 món trong danh sách dùng chung
+    let lastAddDishTimestamp = 0;
 
     // Cấu hình Firebase Realtime Database (Người dùng nhập qua modal trên web)
     const DEFAULT_FIREBASE_CONFIG = null;
@@ -1105,20 +1111,34 @@
       if (savedConfig) {
         configObj = parseFirebaseConfig(savedConfig);
       } else {
-        // Lấy cấu hình từ Vercel Environment Variables
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
-          const res = await fetch('/api/config', { signal: controller.signal });
-          clearTimeout(timeoutId);
-          if (res.ok) {
-            const apiConfig = await res.json();
-            if (apiConfig && apiConfig.databaseURL && apiConfig.apiKey) {
-              configObj = apiConfig;
+        // Kiểm tra cache local trước để tránh gọi API Serverless Vercel liên tục khi F5/reload
+        const cachedApiConfig = localStorage.getItem(CACHED_API_CONFIG_KEY);
+        if (cachedApiConfig) {
+          try {
+            const parsed = JSON.parse(cachedApiConfig);
+            if (parsed && parsed.databaseURL && parsed.apiKey) {
+              configObj = parsed;
             }
+          } catch (e) {}
+        }
+
+        if (!configObj) {
+          // Lấy cấu hình từ Vercel Environment Variables nếu chưa có cache
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+            const res = await fetch('/api/config', { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+              const apiConfig = await res.json();
+              if (apiConfig && apiConfig.databaseURL && apiConfig.apiKey) {
+                configObj = apiConfig;
+                localStorage.setItem(CACHED_API_CONFIG_KEY, JSON.stringify(apiConfig));
+              }
+            }
+          } catch (err) {
+            console.warn("Không thể tải /api/config:", err.message);
           }
-        } catch (err) {
-          console.warn("Không thể tải /api/config:", err.message);
         }
 
         if (!configObj && typeof DEFAULT_FIREBASE_CONFIG === 'object' && DEFAULT_FIREBASE_CONFIG?.databaseURL) {
@@ -1791,6 +1811,21 @@
      */
     function addDish(e) {
       e.preventDefault();
+
+      // 1. Chống Spam: Cooldown giữa các lần thêm món
+      const now = Date.now();
+      if (now - lastAddDishTimestamp < ADD_DISH_COOLDOWN_MS) {
+        const remainingSeconds = Math.ceil((ADD_DISH_COOLDOWN_MS - (now - lastAddDishTimestamp)) / 1000);
+        showToast(`Vui lòng chờ ${remainingSeconds} giây trước khi thêm món tiếp theo để bảo vệ hệ thống!`, "warning");
+        return;
+      }
+
+      // 2. Chống Spam: Giới hạn số lượng món tối đa trong thực đơn dùng chung
+      if (dishes.length >= MAX_SHARED_DISHES) {
+        showToast(`Thực đơn đã đạt tối đa ${MAX_SHARED_DISHES} món. Vui lòng nhờ Admin xóa bớt món trước khi thêm mới!`, "warning");
+        return;
+      }
+
       const name = dishNameInput.value.trim();
       const rawLocations = dishLocationsInput.value.trim();
 
@@ -1802,6 +1837,13 @@
         dishNameInput.focus();
         return;
       }
+
+      if (name.length > 50) {
+        showToast("Tên món ăn quá dài (tối đa 50 ký tự)!", "error");
+        dishNameInput.focus();
+        return;
+      }
+
       if (!rawLocations) {
         showToast("Vui lòng nhập ít nhất một quán & địa chỉ tại TP.HCM!", "error");
         dishLocationsInput.focus();
@@ -1813,21 +1855,26 @@
       }
 
       const lines = rawLocations.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length > 6) {
+        showToast("Mỗi món chỉ nên thêm tối đa 6 địa chỉ quán ăn!", "warning");
+        return;
+      }
+
       const parsedLocations = lines.map(line => {
-        let locName = line;
+        let locName = line.slice(0, 50);
         let locAddress = 'TP. Hồ Chí Minh';
         if (line.includes(' - ')) {
           const parts = line.split(' - ');
-          locName = parts[0].trim();
-          locAddress = parts.slice(1).join(' - ').trim();
+          locName = parts[0].trim().slice(0, 50);
+          locAddress = parts.slice(1).join(' - ').trim().slice(0, 100);
         } else if (line.includes(': ')) {
           const parts = line.split(': ');
-          locName = parts[0].trim();
-          locAddress = parts.slice(1).join(': ').trim();
+          locName = parts[0].trim().slice(0, 50);
+          locAddress = parts.slice(1).join(': ').trim().slice(0, 100);
         } else if (line.includes(',')) {
           const parts = line.split(',');
-          locName = parts[0].trim();
-          locAddress = parts.slice(1).join(',').trim();
+          locName = parts[0].trim().slice(0, 50);
+          locAddress = parts.slice(1).join(',').trim().slice(0, 100);
         }
         return { name: locName, address: locAddress };
       });
@@ -1841,6 +1888,7 @@
 
       dishes.unshift(newDish);
       saveDishes();
+      lastAddDishTimestamp = Date.now();
 
       dishNameInput.value = '';
       dishLocationsInput.value = '';
@@ -2059,6 +2107,7 @@
         }
 
         localStorage.setItem(FIREBASE_CONFIG_KEY, rawText);
+        localStorage.removeItem(CACHED_API_CONFIG_KEY);
         hideFirebaseModal();
         showToast("Đang kết nối tới Firebase...", "info");
         initFirebaseIfConfigured();
@@ -2069,6 +2118,7 @@
 
     function disconnectFirebase() {
       localStorage.setItem(FIREBASE_CONFIG_KEY, 'DISABLED');
+      localStorage.removeItem(CACHED_API_CONFIG_KEY);
       firebaseDb = null;
       setCloudStatus(false);
       hideFirebaseModal();

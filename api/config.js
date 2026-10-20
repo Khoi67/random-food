@@ -11,6 +11,7 @@ export default function handler(req, res) {
     measurementId: process.env.FIREBASE_MEASUREMENT_ID || ""
   };
 
-  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate");
+  // Cache tại Vercel Edge CDN trong 24 giờ, giảm tối đa số lượt gọi Serverless
+  res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400");
   return res.status(200).json(config);
 }

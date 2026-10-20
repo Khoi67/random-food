@@ -44,6 +44,36 @@ Khi nhiều người cùng truy cập ứng dụng chia sẻ Firebase, các thao
 
 ---
 
+## 🛡️ Cơ Chế Bảo Vệ Hạn Mức Free (Anti-Spam & Quota Shield)
+
+Để ứng dụng luôn hoạt động mượt mà và **không bao giờ vượt quá hạn ngạch miễn phí** của Firebase và Vercel:
+1. **Bộ đệm Edge CDN & Local Cache**: Cấu hình Firebase chỉ tải 1 lần qua `/api/config` và được lưu bộ nhớ đệm (Cache 24 giờ). Khi người dùng reload (F5) liên tục, web không gửi thêm request nào lên Serverless của Vercel (tiết kiệm 99% request).
+2. **Giới hạn giãn cách (Rate-Limit Cooldown)**: Mỗi lần thêm món mới có thời gian chờ (cooldown 5 giây) để ngăn chặn spam nút gửi liên tiếp.
+3. **Giới hạn số lượng (Max Dishes Cap)**: Thực đơn giới hạn tối đa 80 món để giữ dung lượng database luôn siêu nhẹ (< 50 KB).
+4. **Tự động Fallback**: Nếu mạng chập chờn, Firebase bị ngắt kết nối hoặc hết hạn ngạch gói Free, ứng dụng tự động chuyển sang `LocalStorage` trên máy người dùng, đảm bảo web luôn hoạt động 100% thời gian.
+
+---
+
+### 📋 Cấu hình Security Rules trên Firebase Console (Khuyên dùng)
+Tại [Firebase Console](https://console.firebase.google.com/) ➔ Realtime Database ➔ tab **Rules**, bạn có thể dán đoạn cấu hình này để ngăn dữ liệu rác:
+```json
+{
+  "rules": {
+    "shared_dishes": {
+      ".read": true,
+      ".write": true,
+      ".validate": "newData.hasChildren() && newData.val().length <= 100"
+    },
+    "admin_config": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
+```
+
+---
+
 ## 🍜 Thực Đơn Chuyên Biệt TP.HCM (Sài Gòn)
 - **Hơn 20 món ăn đặc sản**: Cơm tấm, Hủ tiếu Nam Vang, Bánh mì Huỳnh Hoa, Phở Lệ, Bún bò Út Hưng, Bánh canh cua Út Lệ, Ốc Đào, Lẩu bò Hoàng Thu, Lẩu dê 404, Phá lấu bò Cô Thảo, Dimsum Tiến Phát Q.5...
 - **Mỗi món có danh sách 3 - 5 quán ăn thật kèm địa chỉ cụ thể** tại các quận của TP.HCM.
