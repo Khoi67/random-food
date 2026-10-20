@@ -1005,24 +1005,33 @@
 
     /**
      * 1. FIREBASE REALTIME DATABASE SYNC ENGINE
+     * Mặc định ưu tiên Firebase Realtime Database. 
+     * Tự động fallback sang LocalStorage nếu mất mạng, lỗi server, quá hạn ngạch hoặc lỗi phân quyền.
      */
     async function initFirebaseIfConfigured() {
       let configObj = null;
       const savedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
 
+      // Nạp trước dữ liệu LocalStorage để hiển thị ngay lập tức, tránh màn hình trắng
+      loadDishesFromLocal();
+
+      // Nếu người dùng chủ động bấm ngắt kết nối
       if (savedConfig === 'DISABLED') {
-        // Người dùng chủ động tắt kết nối Cloud
-        setCloudStatus(false);
-        loadDishesFromLocal();
+        setCloudStatus('local', 'Đang dùng LocalStorage (Đã tắt Cloud)');
         return;
       }
+
+      setCloudStatus('connecting', 'Đang kết nối Firebase Cloud...');
 
       if (savedConfig) {
         configObj = parseFirebaseConfig(savedConfig);
       } else {
-        // Thử lấy cấu hình từ Vercel Environment Variables (/api/config)
+        // Lấy cấu hình từ Vercel Environment Variables
         try {
-          const res = await fetch('/api/config');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+          const res = await fetch('/api/config', { signal: controller.signal });
+          clearTimeout(timeoutId);
           if (res.ok) {
             const apiConfig = await res.json();
             if (apiConfig && apiConfig.databaseURL && apiConfig.apiKey) {
@@ -1030,7 +1039,7 @@
             }
           }
         } catch (err) {
-          // Khi chạy offline hoặc không có serverless
+          console.warn("Không thể tải /api/config:", err.message);
         }
 
         if (!configObj && typeof DEFAULT_FIREBASE_CONFIG === 'object' && DEFAULT_FIREBASE_CONFIG?.databaseURL) {
@@ -1038,89 +1047,119 @@
         }
       }
 
+      // Nếu không có bất kỳ cấu hình Firebase nào
       if (!configObj || !configObj.databaseURL) {
-        setCloudStatus(false);
-        loadDishesFromLocal();
+        setCloudStatus('local', 'Chưa có cấu hình Firebase, dùng LocalStorage');
         return;
       }
 
       try {
         if (!window.FirebaseSDK) {
-          // Chờ SDK load nếu chưa sẵn sàng
           setTimeout(initFirebaseIfConfigured, 300);
           return;
         }
 
         const { initializeApp, getDatabase, ref, set, onValue } = window.FirebaseSDK;
-        const app = initializeApp(configObj, "foodWheelApp" + Date.now());
+        const app = initializeApp(configObj, "foodWheelApp_" + Date.now());
         firebaseDb = getDatabase(app);
+
+        // Theo dõi trạng thái kết nối mạng thực tế của Firebase (.info/connected)
+        const connectedRef = ref(firebaseDb, ".info/connected");
+        onValue(connectedRef, (snap) => {
+          if (snap.val() === true) {
+            setCloudStatus('connected', 'Firebase Realtime Đang Hoạt Động 🔥');
+          } else {
+            // Khi mất mạng tạm thời hoặc rớt kết nối
+            if (isFirebaseConnected) {
+              setCloudStatus('offline', 'Mất kết nối Cloud, chuyển sang dữ liệu máy');
+            }
+          }
+        });
 
         const dishesRef = ref(firebaseDb, "shared_dishes");
 
+        // Timeout dự phòng: Nếu sau 5 giây Firebase không phản hồi (vượt hạn ngạch hoặc bị chặn)
+        let hasInitialData = false;
+        const connectionTimeout = setTimeout(() => {
+          if (!hasInitialData) {
+            console.warn("Firebase phản hồi chậm hoặc lỗi mạng, tiếp tục dùng LocalStorage.");
+            setCloudStatus('local', 'Kết nối chậm, đang dùng LocalStorage');
+          }
+        }, 5000);
+
         // Lắng nghe dữ liệu realtime từ Firebase
         onValue(dishesRef, (snapshot) => {
+          hasInitialData = true;
+          clearTimeout(connectionTimeout);
           const cloudData = snapshot.val();
+
           if (Array.isArray(cloudData) && cloudData.length > 0) {
             dishes = cloudData;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(dishes));
             updateMealTabsUI();
           } else {
-            // Lần đầu database rỗng: đẩy dữ liệu hiện tại lên
+            // Database rỗng: đẩy dữ liệu gốc hiện tại lên Cloud
             if (dishes.length === 0) {
               loadDishesFromLocal();
             }
             saveDishes(true);
           }
+          setCloudStatus('connected', 'Đã đồng bộ Firebase Realtime');
         }, (error) => {
+          // Xử lý khi có lỗi phân quyền, hết hạn ngạch hoặc database bị khóa
+          clearTimeout(connectionTimeout);
           console.error("Firebase Realtime Error:", error);
-          showToast("Lỗi đồng bộ Firebase. Đang dùng LocalStorage", "error");
-          setCloudStatus(false);
+          setCloudStatus('local', 'Lỗi Cloud (' + (error.code || 'quá tải') + '), đang dùng LocalStorage');
+          showToast("Cloud gặp sự cố: " + (error.message || 'Quá tải') + ". Tự động chuyển sang LocalStorage", "warning");
         });
 
-        isFirebaseConnected = true;
-        setCloudStatus(true);
-        showToast("Đã kết nối Firebase Realtime! Mọi người đang dùng chung thực đơn", "success");
       } catch (e) {
-        console.error("Lỗi khởi tạo Firebase:", e);
-        setCloudStatus(false);
-        loadDishesFromLocal();
+        console.error("Lỗi khởi tạo Firebase SDK:", e);
+        setCloudStatus('local', 'Lỗi SDK, đang dùng LocalStorage');
       }
     }
 
-    function setCloudStatus(connected) {
-      isFirebaseConnected = connected;
-      if (connected) {
+    function setCloudStatus(state, message = '') {
+      // state: 'connected' | 'connecting' | 'local' | 'offline'
+      if (state === 'connected') {
+        isFirebaseConnected = true;
         cloudStatusDot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
         cloudStatusText.textContent = "Firebase Realtime";
         dataSaveModeBadge.textContent = "Cloud Shared 🔥";
         dataSaveModeBadge.className = "text-[11px] font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30";
+        if (message) console.log("Firebase Status:", message);
+      } else if (state === 'connecting') {
+        isFirebaseConnected = false;
+        cloudStatusDot.className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
+        cloudStatusText.textContent = "Đang kết nối...";
+        dataSaveModeBadge.textContent = "Đang kết nối Cloud...";
+        dataSaveModeBadge.className = "text-[11px] font-medium text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20";
       } else {
+        // Fallback về LocalStorage
+        isFirebaseConnected = false;
         cloudStatusDot.className = "w-2 h-2 rounded-full bg-slate-500";
         cloudStatusText.textContent = "LocalStorage";
-        dataSaveModeBadge.textContent = "LocalStorage";
+        dataSaveModeBadge.textContent = "LocalStorage 🛡️";
         dataSaveModeBadge.className = "text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20";
+        if (message) console.log("Fallback Status:", message);
       }
     }
 
     function parseFirebaseConfig(rawText) {
       if (typeof rawText !== 'string') return null;
-      // Nếu là JSON thuần
       try {
         return JSON.parse(rawText);
       } catch (e) {}
 
-      // Nếu người dùng dán `const firebaseConfig = { ... };`
       const match = rawText.match(/\{[\s\S]*\}/);
       if (match) {
         try {
-          // Đổi dạng object JS sang JSON
           const jsonText = match[0]
             .replace(/([a-zA-Z0-9_]+)\s*:/g, '"$1":')
             .replace(/'/g, '"')
             .replace(/,\s*\}/g, '}');
           return JSON.parse(jsonText);
         } catch (e) {
-          // Thử eval an toàn hơn cho object literal
           return (new Function("return " + match[0]))();
         }
       }
@@ -1128,7 +1167,7 @@
     }
 
     /**
-     * 2. LOAD & SAVE DISHES (LOCAL & CLOUD)
+     * 2. LOAD & SAVE DISHES (LOCAL & CLOUD DUAL-STORAGE)
      */
     function loadDishesFromLocal() {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -1151,21 +1190,24 @@
     }
 
     function saveDishes(skipLocal = false) {
+      // Luôn lưu bản sao vào LocalStorage trước để bảo vệ dữ liệu tuyệt đối
       if (!skipLocal) {
         saveDishesLocally();
       }
 
-      // Đẩy lên Firebase nếu đang kết nối
+      // Đẩy lên Firebase nếu đang kết nối Realtime
       if (isFirebaseConnected && firebaseDb && window.FirebaseSDK) {
         try {
           const { ref, set } = window.FirebaseSDK;
           const dishesRef = ref(firebaseDb, "shared_dishes");
           set(dishesRef, dishes).catch(err => {
-            console.error("Lỗi lưu lên Firebase:", err);
-            showToast("Lỗi đẩy lên Cloud, đã lưu cục bộ", "warning");
+            console.error("Lỗi đẩy lên Firebase:", err);
+            setCloudStatus('local', 'Lỗi Cloud khi lưu, đã lưu vào LocalStorage');
+            showToast("Lỗi kết nối Cloud, dữ liệu đã được lưu an toàn trên máy bạn", "warning");
           });
         } catch (e) {
           console.error("Lỗi gọi Firebase set:", e);
+          setCloudStatus('local');
         }
       }
     }
