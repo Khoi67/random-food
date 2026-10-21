@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getDatabase, ref, set, get, update, remove, onValue, push } from 'firebase/database';
 import { 
   getAuth, 
@@ -137,9 +137,36 @@ export async function initFirebase({
   }
 
   try {
-    firebaseApp = initializeApp(configObj, "foodWheelApp_" + Date.now());
-    firebaseDb = getDatabase(firebaseApp);
+    if (getApps().length === 0) {
+      firebaseApp = initializeApp(configObj);
+    } else {
+      firebaseApp = getApp();
+    }
+    firebaseDb = getDatabase(firebaseApp, configObj.databaseURL);
     firebaseAuth = getAuth(firebaseApp);
+
+    // Tải trước danh sách món ăn từ REST API để load tức thì 100% không bị treo
+    try {
+      const restEndpoint = `${configObj.databaseURL.replace(/\/$/, '')}/shared_dishes.json`;
+      const restRes = await fetch(restEndpoint);
+      if (restRes.ok) {
+        const restJson = await restRes.json();
+        if (restJson) {
+          let preloaded = Array.isArray(restJson) ? restJson.filter(Boolean) : Object.values(restJson);
+          preloaded = preloaded.map(normalizeDish);
+          if (preloaded.length > 0) {
+            if (typeof setDishes === 'function') setDishes(preloaded);
+            if (typeof onDishesSync === 'function') onDishesSync(preloaded);
+            if (typeof onDataChange === 'function') onDataChange(preloaded);
+            saveDishesLocally(preloaded);
+            isFirebaseConnected = true;
+            if (onStatusChange) onStatusChange('connected', 'Firebase Realtime Đang Hoạt Động 🔥');
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Lỗi tải REST ban đầu:", e.message);
+    }
 
     // 1. Cấu hình App Check (Fraud Defense / reCAPTCHA Enterprise hoặc reCAPTCHA v3) nếu có Site Key
     const siteKey = configObj.recaptchaSiteKey || localStorage.getItem(RECAPTCHA_KEY);

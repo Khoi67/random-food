@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, MoreVertical, History, Cloud, ShieldCheck, RefreshCw, Clock } from 'lucide-react';
+import { Volume2, VolumeX, MoreVertical, History, ShieldCheck, RefreshCw, Clock } from 'lucide-react';
 import { isSoundEnabled, setSoundEnabled } from '../utils/audio.js';
 
 interface HeaderProps {
   onOpenHistory: () => void;
-  onOpenCloud: () => void;
   onOpenAdmin: () => void;
   onRestoreDefaults: () => void;
   historyCount: number;
@@ -14,7 +13,6 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenHistory,
-  onOpenCloud,
   onOpenAdmin,
   onRestoreDefaults,
   historyCount,
@@ -81,10 +79,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Cloud Sync Status Badge */}
-          <button
-            onClick={onOpenCloud}
-            title="Trạng thái đồng bộ đám mây"
-            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 transition"
+          <div
+            title={cloudStatus === 'connected' ? 'Đang đồng bộ Firebase Cloud' : 'Chế độ ngoại tuyến'}
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 select-none"
           >
             <span
               className={`w-2 h-2 rounded-full ${
@@ -98,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline text-[11px] font-medium">
               {cloudStatus === 'connected' ? 'Cloud Sync' : cloudStatus === 'connecting' ? 'Đang kết nối' : 'Ngoại tuyến'}
             </span>
-          </button>
+          </div>
 
           {/* Sound Toggle Button */}
           <button
@@ -148,17 +145,6 @@ export const Header: React.FC<HeaderProps> = ({
                         {historyCount}
                       </span>
                     )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onOpenCloud();
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition cursor-pointer"
-                  >
-                    <Cloud className="w-4 h-4 text-sky-400" />
-                    Đồng bộ Cloud (Firebase)
                   </button>
 
                   <button

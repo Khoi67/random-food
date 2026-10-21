@@ -36,7 +36,6 @@ import { AddDishModal } from './components/AddDishModal';
 import { HistoryModal } from './components/HistoryModal';
 import { ReviewModal } from './components/ReviewModal';
 import { AdminModal } from './components/AdminModal';
-import { FirebaseModal } from './components/FirebaseModal';
 
 export const App: React.FC = () => {
   // Dishes state
@@ -67,7 +66,6 @@ export const App: React.FC = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isFirebaseOpen, setIsFirebaseOpen] = useState(false);
 
   // Status state
   const [isAdmin, setIsAdmin] = useState(false);
@@ -299,7 +297,6 @@ export const App: React.FC = () => {
       {/* 1. Sticky Header */}
       <Header
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenCloud={() => setIsFirebaseOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
         onRestoreDefaults={handleRestoreDefaults}
         historyCount={historyCount}
@@ -402,26 +399,6 @@ export const App: React.FC = () => {
         isAdmin={isAdmin}
         onAdminStatusChange={(status) => setIsAdmin(status)}
         onRestoreDefaults={handleRestoreDefaults}
-      />
-
-      {/* 6. Firebase Cloud Sync Modal */}
-      <FirebaseModal
-        isOpen={isFirebaseOpen}
-        onClose={() => setIsFirebaseOpen(false)}
-        onConfigUpdated={() => {
-          initFirebase({
-            onDataChange: (cloudDishes: Dish[]) => {
-              if (Array.isArray(cloudDishes) && cloudDishes.length > 0) {
-                const norm = cloudDishes.map(normalizeDish) as Dish[];
-                setDishes(norm);
-                saveDishesLocally(norm);
-              }
-            },
-            onStatusChange: (status) => {
-              setCloudStatus(status === 'connected' ? 'connected' : status === 'connecting' ? 'connecting' : 'offline');
-            },
-          });
-        }}
       />
     </div>
   );
