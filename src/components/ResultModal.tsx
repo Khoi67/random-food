@@ -24,9 +24,10 @@ import { trackSpinAgain, trackOpenMaps } from '../services/analytics.js';
 interface ResultModalProps {
   dish: Dish | null;
   onClose: () => void;
-  onSpinAgain: () => void;
+  onSpinAgain?: () => void;
   onExcludeDish: (id: string) => void;
   onOpenReviews: (dish: Dish) => void;
+  mode?: 'spin' | 'detail';
 }
 
 export const ResultModal: React.FC<ResultModalProps> = ({
@@ -35,6 +36,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({
   onSpinAgain,
   onExcludeDish,
   onOpenReviews,
+  mode = 'spin',
 }) => {
   const [locationsWithDistance, setLocationsWithDistance] = useState<
     (LocationItem & { distKm?: number })[]
@@ -47,15 +49,17 @@ export const ResultModal: React.FC<ResultModalProps> = ({
   useEffect(() => {
     if (!dish) return;
 
-    // Trigger Confetti
-    try {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#ea580c', '#f59e0b', '#dc2626', '#10b981', '#3b82f6'],
-      });
-    } catch (e) {}
+    // Trigger Confetti only when won from a spin
+    if (mode === 'spin') {
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#ea580c', '#f59e0b', '#dc2626', '#10b981', '#3b82f6'],
+        });
+      } catch (e) {}
+    }
 
     // Check cached location
     const cached = getCachedUserLocation();
@@ -137,9 +141,15 @@ export const ResultModal: React.FC<ResultModalProps> = ({
 
         {/* Title & Celebration Header */}
         <div className="text-center pt-2 pb-4">
-          <div className="inline-block px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 font-bold text-xs uppercase tracking-wider mb-2">
-            🎉 Vũ Trụ Đã Chọn Cho Bạn!
-          </div>
+          {mode === 'spin' ? (
+            <div className="inline-block px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 font-bold text-xs uppercase tracking-wider mb-2">
+              🎉 Vũ Trụ Đã Chọn Cho Bạn!
+            </div>
+          ) : (
+            <div className="inline-block px-3 py-1 rounded-full bg-slate-800 border border-slate-700/80 text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
+              📍 Thông Tin & Địa Điểm Quán
+            </div>
+          )}
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             {dish.name}
           </h2>
@@ -248,20 +258,30 @@ export const ResultModal: React.FC<ResultModalProps> = ({
 
         {/* Action Buttons Footer */}
         <div className="pt-4 border-t border-slate-800/80 space-y-2 mt-2">
-          {/* Main Action Buttons */}
-          <div>
-            {/* Spin Again */}
-            <button
-              onClick={() => {
-                trackSpinAgain();
-                onSpinAgain();
-              }}
-              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 transition cursor-pointer active:scale-95"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Quay lại món khác</span>
-            </button>
-          </div>
+          {mode === 'spin' && onSpinAgain ? (
+            <div>
+              {/* Spin Again */}
+              <button
+                onClick={() => {
+                  trackSpinAgain();
+                  onSpinAgain();
+                }}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 transition cursor-pointer active:scale-95"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Quay lại món khác</span>
+              </button>
+            </div>
+          ) : (
+            <div>
+              <button
+                onClick={onClose}
+                className="w-full py-2.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center transition cursor-pointer"
+              >
+                Đóng cửa sổ
+              </button>
+            </div>
+          )}
 
           {/* Temporary Exclude Button */}
           <button

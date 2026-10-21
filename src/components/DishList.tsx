@@ -13,6 +13,7 @@ interface DishListProps {
   onOpenAddModal: () => void;
   onOpenReviewModal: (dish: Dish) => void;
   onDeleteDish?: (dish: Dish) => void;
+  onSelectDish?: (dish: Dish) => void;
   isAdmin: boolean;
 }
 
@@ -27,6 +28,7 @@ export const DishList: React.FC<DishListProps> = ({
   onOpenAddModal,
   onOpenReviewModal,
   onDeleteDish,
+  onSelectDish,
   isAdmin,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -178,7 +180,9 @@ export const DishList: React.FC<DishListProps> = ({
             return (
               <div
                 key={dishId}
-                className="group flex flex-col p-3.5 sm:p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800/90 border border-slate-800 hover:border-amber-500/30 transition-all duration-150 gap-2 shadow-sm"
+                onClick={() => onSelectDish && onSelectDish(dish)}
+                className="group flex flex-col p-3.5 sm:p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800/90 border border-slate-800 hover:border-amber-500/40 transition-all duration-150 gap-2 shadow-sm cursor-pointer select-none active:scale-[0.99]"
+                title="Bấm để xem thông tin quán, địa chỉ và chỉ đường"
               >
                 {/* TẦNG 1: Số thứ tự + Tên món (đậm tông cam) + Nút thao tác nhanh (Rộng rãi, không bị ép hẹp) */}
                 <div className="flex items-center justify-between gap-2 w-full">
@@ -206,7 +210,10 @@ export const DishList: React.FC<DishListProps> = ({
                     {/* Nút Yêu thích */}
                     <button
                       type="button"
-                      onClick={() => onToggleFavorite(dishId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(dishId);
+                      }}
                       aria-label={`Yêu thích món ${dish.name || ''}`}
                       title={
                         isFav
@@ -229,7 +236,10 @@ export const DishList: React.FC<DishListProps> = ({
                     {/* Nút Tạm loại */}
                     <button
                       type="button"
-                      onClick={() => onToggleExclude(dishId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleExclude(dishId);
+                      }}
                       aria-label={`Tạm loại món ${dish.name || ''}`}
                       title="Không muốn món này hôm nay (Tạm loại khỏi vòng quay)"
                       className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 border border-slate-700/60 transition cursor-pointer"
@@ -241,7 +251,10 @@ export const DishList: React.FC<DishListProps> = ({
                     {isAdmin && onDeleteDish && (
                       <button
                         type="button"
-                        onClick={() => onDeleteDish(dish)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteDish(dish);
+                        }}
                         aria-label={`Xóa món ${dish.name || ''}`}
                         title="Xóa món ăn này (Quyền Quản trị viên)"
                         className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-700/60 transition cursor-pointer"
@@ -331,7 +344,10 @@ export const DishList: React.FC<DishListProps> = ({
                   {/* Nút Đánh giá */}
                   <button
                     type="button"
-                    onClick={() => onOpenReviewModal(dish)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenReviewModal(dish);
+                    }}
                     className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/20 transition cursor-pointer flex-shrink-0"
                     title="Xem & viết đánh giá cho món này"
                   >

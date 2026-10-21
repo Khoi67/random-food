@@ -196,7 +196,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
     const handleResize = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
-      const size = Math.min(parent.clientWidth - 16, 440);
+      const size = Math.min(parent.clientWidth - 16, 400);
       const dpr = window.devicePixelRatio || 1;
 
       canvas.width = Math.round(size * dpr);
@@ -290,7 +290,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
   return (
     <div className="flex flex-col items-center justify-center relative select-none w-full">
       {/* Canvas Container */}
-      <div className="relative w-full max-w-[440px] aspect-square flex items-center justify-center p-1 sm:p-2">
+      <div className="relative w-full max-w-[400px] aspect-square flex items-center justify-center p-1 sm:p-2">
         {/* Top Pointer Indicator */}
         <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none drop-shadow-[0_4px_10px_rgba(234,88,12,0.8)]">
           <div className="w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[32px] border-t-amber-400" />

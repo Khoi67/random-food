@@ -65,6 +65,7 @@ export const App: React.FC = () => {
 
   // Modals state
   const [winnerDish, setWinnerDish] = useState<Dish | null>(null);
+  const [selectedDishDetail, setSelectedDishDetail] = useState<Dish | null>(null);
   const [reviewDish, setReviewDish] = useState<Dish | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -359,6 +360,7 @@ export const App: React.FC = () => {
               onOpenAddModal={() => setIsAddOpen(true)}
               onOpenReviewModal={(dish) => setReviewDish(dish)}
               onDeleteDish={handleDeleteDish}
+              onSelectDish={(dish) => setSelectedDishDetail(dish)}
               isAdmin={isAdmin}
             />
           </section>
@@ -366,9 +368,10 @@ export const App: React.FC = () => {
       </main>
 
       {/* ==================== MODALS ==================== */}
-      {/* 1. Result Modal */}
+      {/* 1. Result Modal (from Spin) */}
       <ResultModal
         dish={winnerDish}
+        mode="spin"
         onClose={() => setWinnerDish(null)}
         onSpinAgain={() => {
           setWinnerDish(null);
@@ -378,6 +381,21 @@ export const App: React.FC = () => {
           setWinnerDish(null);
         }}
         onOpenReviews={(dish) => {
+          setReviewDish(dish);
+        }}
+      />
+
+      {/* 1b. Store Info / Detail Modal (from clicking Dish in list) */}
+      <ResultModal
+        dish={selectedDishDetail}
+        mode="detail"
+        onClose={() => setSelectedDishDetail(null)}
+        onExcludeDish={(id) => {
+          handleToggleExclude(id);
+          setSelectedDishDetail(null);
+        }}
+        onOpenReviews={(dish) => {
+          setSelectedDishDetail(null);
           setReviewDish(dish);
         }}
       />
