@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Dish, MealType } from '../types/index.js';
-import { Search, Plus, Heart, Ban, Trash2, MapPin, Star } from 'lucide-react';
+import { Search, Plus, Heart, Ban, Trash2, Star } from 'lucide-react';
 
 interface DishListProps {
   currentMeal: MealType;
@@ -18,8 +18,8 @@ interface DishListProps {
 
 export const DishList: React.FC<DishListProps> = ({
   currentMeal,
-  dishes,
-  excludedDishIds,
+  dishes = [],
+  excludedDishIds = new Set(),
   onToggleExclude,
   onResetExcluded,
   isFavoriteFn,
@@ -37,40 +37,49 @@ export const DishList: React.FC<DishListProps> = ({
     toi: 'Thực đơn Chiều / Tối',
   };
 
-  const filtered = dishes.filter((dish) => {
+  // Lọc an toàn tương thích với cả món dữ liệu cũ (thiếu trường, tên undefined, locations dạng chuỗi)
+  const filtered = (dishes || []).filter((dish) => {
+    if (!dish) return false;
     if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    const nameMatch = dish.name.toLowerCase().includes(term);
-    const locMatch =
-      Array.isArray(dish.locations) &&
-      dish.locations.some(
-        (l) =>
-          (l.name && l.name.toLowerCase().includes(term)) ||
-          (l.address && l.address.toLowerCase().includes(term))
-      );
+    const term = searchTerm.trim().toLowerCase();
+    const dishName = dish.name ? String(dish.name).toLowerCase() : '';
+    const nameMatch = dishName.includes(term);
+
+    const locationsList = Array.isArray(dish.locations) ? dish.locations : [];
+    const locMatch = locationsList.some((l: any) => {
+      if (!l) return false;
+      if (typeof l === 'string') return l.toLowerCase().includes(term);
+      const lName = l.name ? String(l.name).toLowerCase() : '';
+      const lAddr = l.address ? String(l.address).toLowerCase() : '';
+      return lName.includes(term) || lAddr.includes(term);
+    });
+
     return nameMatch || locMatch;
   });
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/60 rounded-3xl border border-slate-800/80 p-4 sm:p-5 shadow-xl backdrop-blur-md">
+    <div className="flex flex-col h-full bg-slate-900/60 rounded-3xl border border-slate-800/80 p-3.5 sm:p-5 shadow-xl backdrop-blur-md overflow-hidden">
       {/* Top Header */}
       <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
-        <div>
-          <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-            <span>{mealTitles[currentMeal]}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20 font-bold">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-black text-white truncate">
+              {mealTitles[currentMeal] || 'Thực đơn'}
+            </h2>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20 font-bold flex-shrink-0">
               {dishes.length} món
             </span>
-          </h2>
-          <p className="text-[11px] text-slate-400">
-            Các món ăn đang được đưa vào vòng quay
+          </div>
+          <p className="text-[11px] text-slate-400 truncate">
+            Danh sách các món và quán ngon TP.HCM
           </p>
         </div>
 
         {/* Add Dish Button */}
         <button
+          type="button"
           onClick={onOpenAddModal}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 text-white font-bold text-xs shadow-md shadow-brand-500/20 active:scale-95 transition cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 text-white font-bold text-xs shadow-md shadow-brand-500/20 active:scale-95 transition cursor-pointer flex-shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden xs:inline">Thêm món</span>
@@ -84,21 +93,22 @@ export const DishList: React.FC<DishListProps> = ({
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Tìm tên món, quán ăn, quận..."
+          placeholder="Tìm tên món hoặc quán ăn..."
           className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-950/80 border border-slate-800 focus:border-brand-500 focus:outline-none text-xs text-white placeholder-slate-500 transition"
         />
       </div>
 
       {/* Excluded Dishes Banner */}
-      {excludedDishIds.size > 0 && (
+      {excludedDishIds && excludedDishIds.size > 0 && (
         <div className="flex items-center justify-between p-2.5 mb-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
-          <span className="flex items-center gap-1.5 font-semibold">
+          <span className="flex items-center gap-1.5 font-semibold truncate mr-2">
             <span>🚫</span>
-            <span>Đang tạm loại {excludedDishIds.size} món phiên hôm nay</span>
+            <span className="truncate">Đang tạm loại {excludedDishIds.size} món hôm nay</span>
           </span>
           <button
+            type="button"
             onClick={onResetExcluded}
-            className="text-[11px] font-bold text-amber-300 hover:text-white underline cursor-pointer"
+            className="text-[11px] font-bold text-amber-300 hover:text-white underline cursor-pointer flex-shrink-0"
           >
             Khôi phục tất cả
           </button>
@@ -106,122 +116,200 @@ export const DishList: React.FC<DishListProps> = ({
       )}
 
       {/* Dish Items Scroll Container */}
-      <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[300px] max-h-[580px]">
+      <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[300px] max-h-[560px]">
         {filtered.length === 0 ? (
           <div className="py-12 text-center text-slate-400">
-            <span className="text-3xl block mb-2">🔍</span>
-            <p className="font-semibold text-slate-300 text-sm">Không tìm thấy món ăn nào</p>
+            <span className="text-3xl block mb-2">🍜</span>
+            <p className="font-semibold text-slate-300 text-sm">Chưa có món ăn nào trong danh mục này</p>
             <p className="text-xs text-slate-500 mt-1">
-              Thử xóa từ khóa tìm kiếm hoặc điều chỉnh lại bộ lọc nhanh
+              {searchTerm ? 'Thử tìm với từ khóa khác' : 'Bấm nút "+ Thêm món" ở trên để đóng góp quán ngon nhé!'}
             </p>
           </div>
         ) : (
-          filtered.map((dish) => {
-            const isFav = isFavoriteFn(dish.id);
-            const isExcluded = excludedDishIds.has(dish.id);
-            const locations = dish.locations || [];
+          filtered.map((dish, index) => {
+            const dishId = dish.id || `dish-${index}`;
+            const isFav = isFavoriteFn ? isFavoriteFn(dishId) : false;
 
-            // Ratings summary
-            const reviews = dish.reviews || [];
+            // Xử lý an toàn danh sách địa chỉ (hỗ trợ cả Object lẫn chuỗi string)
+            const locationsList = Array.isArray(dish.locations) ? dish.locations : [];
+            const locationsPreview =
+              locationsList.length > 0
+                ? locationsList
+                    .map((l: any) => (typeof l === 'string' ? l : l?.name || l?.address || ''))
+                    .filter(Boolean)
+                    .slice(0, 3)
+                    .join(', ') || 'TP. Hồ Chí Minh'
+                : 'TP. Hồ Chí Minh';
+
+            // Xử lý an toàn đánh giá sao
+            const reviews = Array.isArray(dish.reviews) ? dish.reviews : [];
             const hasReviews = reviews.length > 0;
             const avgRating = hasReviews
-              ? (reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length).toFixed(1)
+              ? (
+                  reviews.reduce((sum, r) => sum + (Number(r?.stars) || 5), 0) /
+                  reviews.length
+                ).toFixed(1)
               : null;
+
+            // Xử lý an toàn bữa ăn
+            const mealTypes = Array.isArray(dish.mealTypes)
+              ? dish.mealTypes
+              : dish.meal
+              ? [dish.meal]
+              : [];
+
+            // Xử lý an toàn khoảng giá
+            const priceRange = dish.priceRange || '50to100';
+            const priceText =
+              priceRange === 'under50'
+                ? '< 50k'
+                : priceRange === 'above100'
+                ? '> 100k'
+                : '50k-100k';
+            const priceClass =
+              priceRange === 'under50'
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : priceRange === 'above100'
+                ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                : 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+
+            const typeBadgeText = dish.type === 'nuoc' ? '🍜 Nước' : '🥢 Khô';
 
             return (
               <div
-                key={dish.id}
-                className="group p-3 sm:p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800/80 hover:border-brand-500/30 transition duration-150 flex flex-col gap-2"
+                key={dishId}
+                className="group flex flex-col p-3.5 sm:p-4 rounded-2xl bg-slate-900/70 hover:bg-slate-800/80 border border-slate-800 hover:border-amber-500/30 transition duration-150 gap-2.5 overflow-hidden"
               >
-                {/* Header Row: Dish Name & Action Icons */}
+                {/* Header Row: Number Badge + Tên Món (Đậm tông cam) + Action Buttons */}
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-bold text-white text-sm sm:text-base leading-snug">
-                        {dish.name}
-                      </span>
-                      {dish.shortName && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-brand-500/10 text-brand-300 border border-brand-500/20 font-medium">
-                          🏷️ {dish.shortName}
-                        </span>
-                      )}
+                  {/* Left: Number + Title & Locations */}
+                  <div className="flex items-start space-x-2.5 min-w-0 flex-1">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-800 flex items-center justify-center font-black text-xs text-brand-400 flex-shrink-0 border border-slate-700/60 mt-0.5">
+                      {index + 1}
                     </div>
 
-                    {/* Locations preview */}
-                    <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
-                      <MapPin className="w-3 h-3 text-brand-400 flex-shrink-0" />
-                      <span className="truncate">
-                        {locations.length > 0
-                          ? locations.map((l) => l.name).join(', ')
-                          : 'TP. Hồ Chí Minh'}
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="font-extrabold text-brand-400 group-hover:text-brand-300 text-sm sm:text-base leading-snug break-words">
+                          {dish.name || 'Món ăn'}
+                        </h3>
+                        {dish.shortName && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-brand-500/10 text-brand-300 border border-brand-500/20 font-medium whitespace-nowrap">
+                            🏷️ {dish.shortName}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Locations preview */}
+                      <p
+                        className="text-xs text-slate-400 mt-1 truncate"
+                        title={locationsPreview}
+                      >
+                        📍 <span className="text-slate-300 font-medium">Gợi ý:</span> {locationsPreview}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Actions Buttons */}
-                  <div className="flex items-center space-x-1 flex-shrink-0">
+                  {/* Right: Action Buttons (Yêu thích, Tạm loại, Xóa) */}
+                  <div className="flex items-center space-x-1 sm:space-x-1.5 flex-shrink-0 pt-0.5">
                     {/* Favorite 2x button */}
                     <button
-                      onClick={() => onToggleFavorite(dish.id)}
-                      aria-label="Yêu thích (tăng 2x tỉ lệ)"
-                      title={isFav ? 'Bỏ yêu thích' : 'Yêu thích (2x tỉ lệ trúng)'}
-                      className={`p-1.5 rounded-lg transition cursor-pointer ${
+                      type="button"
+                      onClick={() => onToggleFavorite(dishId)}
+                      aria-label={`Yêu thích món ${dish.name || ''}`}
+                      title={
                         isFav
-                          ? 'text-rose-400 bg-rose-500/20 hover:bg-rose-500/30'
-                          : 'text-slate-500 hover:text-rose-400 hover:bg-slate-800'
+                          ? 'Đã yêu thích (Tăng 2x tỉ lệ quay). Bấm để bỏ'
+                          : 'Thêm vào yêu thích (Tăng 2x tỉ lệ quay)'
+                      }
+                      className={`p-1.5 sm:p-2 rounded-xl border text-xs transition cursor-pointer ${
+                        isFav
+                          ? 'text-rose-400 bg-rose-500/15 border-rose-500/30'
+                          : 'text-slate-500 hover:text-rose-400 hover:bg-slate-800 border-slate-700/60'
                       }`}
                     >
-                      <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-400' : ''}`} />
+                      <Heart
+                        className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
+                          isFav ? 'fill-rose-400' : ''
+                        }`}
+                      />
                     </button>
 
                     {/* Exclude from wheel button */}
                     <button
-                      onClick={() => onToggleExclude(dish.id)}
-                      aria-label="Tạm loại khỏi vòng quay phiên này"
-                      title="Tạm loại khỏi vòng quay phiên này"
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-amber-400 hover:bg-slate-800 transition cursor-pointer"
+                      type="button"
+                      onClick={() => onToggleExclude(dishId)}
+                      aria-label={`Tạm loại món ${dish.name || ''}`}
+                      title="Không muốn món này hôm nay (Tạm loại khỏi vòng quay)"
+                      className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 border border-slate-700/60 transition cursor-pointer"
                     >
-                      <Ban className="w-4 h-4" />
+                      <Ban className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
 
                     {/* Admin Delete button */}
                     {isAdmin && onDeleteDish && (
                       <button
+                        type="button"
                         onClick={() => onDeleteDish(dish)}
-                        aria-label="Xóa món ăn"
-                        title="Xóa món ăn"
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
+                        aria-label={`Xóa món ${dish.name || ''}`}
+                        title="Xóa món ăn này (Quyền Quản trị viên)"
+                        className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-700/60 transition cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Footer Badges & Reviews */}
-                <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/50 flex-wrap">
-                  {/* Badges */}
+                {/* Footer Badges & Reviews: Dark theme, viền bo tròn, tag nhỏ gọn */}
+                <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-800/60 flex-wrap">
+                  {/* Badges container */}
                   <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Meal Badges */}
+                    {mealTypes.map((m) => {
+                      if (m === 'sang') {
+                        return (
+                          <span
+                            key="sang"
+                            className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-md font-medium"
+                          >
+                            Sáng
+                          </span>
+                        );
+                      }
+                      if (m === 'trua') {
+                        return (
+                          <span
+                            key="trua"
+                            className="text-[10px] px-1.5 py-0.5 bg-sky-500/10 text-sky-300 border border-sky-500/20 rounded-md font-medium"
+                          >
+                            Trưa
+                          </span>
+                        );
+                      }
+                      if (m === 'toi') {
+                        return (
+                          <span
+                            key="toi"
+                            className="text-[10px] px-1.5 py-0.5 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-md font-medium"
+                          >
+                            Tối
+                          </span>
+                        );
+                      }
+                      return null;
+                    })}
+
                     {/* Price Badge */}
                     <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-md border font-semibold ${
-                        dish.priceRange === 'under50'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          : dish.priceRange === 'above100'
-                          ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                          : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                      }`}
+                      className={`text-[10px] px-1.5 py-0.5 rounded-md border font-semibold ${priceClass}`}
                     >
-                      {dish.priceRange === 'under50'
-                        ? '< 50k'
-                        : dish.priceRange === 'above100'
-                        ? '> 100k'
-                        : '50-100k'}
+                      {priceText}
                     </span>
 
                     {/* Type Badge */}
                     <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700/80">
-                      {dish.type === 'nuoc' ? '🍜 Nước' : '🥢 Khô'}
+                      {typeBadgeText}
                     </span>
 
                     {/* Vegetarian */}
@@ -241,11 +329,15 @@ export const DishList: React.FC<DishListProps> = ({
 
                   {/* Reviews trigger */}
                   <button
+                    type="button"
                     onClick={() => onOpenReviewModal(dish)}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 hover:underline cursor-pointer"
+                    className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/20 transition cursor-pointer ml-auto"
+                    title="Xem & viết đánh giá cho món này"
                   >
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    <span>{hasReviews ? `${avgRating} (${reviews.length})` : 'Đánh giá'}</span>
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    <span>
+                      {hasReviews ? `${avgRating} (${reviews.length})` : 'Đánh giá'}
+                    </span>
                   </button>
                 </div>
               </div>
