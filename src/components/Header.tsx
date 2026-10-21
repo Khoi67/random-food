@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, MoreVertical, History, ShieldCheck, RefreshCw, Clock } from 'lucide-react';
+import { Volume2, VolumeX, MoreVertical, History, ShieldCheck, Clock } from 'lucide-react';
 import { isSoundEnabled, setSoundEnabled } from '../utils/audio.js';
 
 interface HeaderProps {
   onOpenHistory: () => void;
   onOpenAdmin: () => void;
-  onRestoreDefaults: () => void;
   historyCount: number;
   cloudStatus: 'connected' | 'connecting' | 'offline';
   isAdmin: boolean;
@@ -14,7 +13,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   onOpenHistory,
   onOpenAdmin,
-  onRestoreDefaults,
   historyCount,
   cloudStatus,
   isAdmin,
@@ -161,19 +159,6 @@ export const Header: React.FC<HeaderProps> = ({
                     <span className="text-[10px] text-slate-400 font-mono">
                       {isAdmin ? 'Đã mở 🔓' : 'Khách 🔒'}
                     </span>
-                  </button>
-
-                  <div className="my-1 border-t border-slate-800" />
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onRestoreDefaults();
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Khôi phục mẫu gốc TP.HCM
                   </button>
                 </div>
               </>

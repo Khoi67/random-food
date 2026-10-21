@@ -58,20 +58,14 @@ export function showToast(message, type = 'info') {
 export function detectMealByCurrentTime() {
   const now = new Date();
   const hours = now.getHours() + now.getMinutes() / 60;
-  let detected = 'sang';
-  let name = 'Bữa Sáng';
 
   if (hours >= 5.0 && hours < 10.5) {
-    detected = 'sang';
-    name = 'Bữa Sáng (5h - 10h30)';
+    return 'sang';
   } else if (hours >= 10.5 && hours < 14.5) {
-    detected = 'trua';
-    name = 'Bữa Trưa (10h30 - 14h30)';
+    return 'trua';
   } else {
-    detected = 'toi';
-    name = 'Bữa Chiều / Tối (14h30 - 23h)';
+    return 'toi';
   }
-  return { detected, name };
 }
 
 /**

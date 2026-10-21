@@ -216,7 +216,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </form>
 
               {/* Restore Defaults */}
-              <div className="pt-2 border-t border-slate-800">
+              <div className="pt-3 border-t border-slate-800 space-y-1.5">
+                <p className="text-[11px] text-slate-400">
+                  Dành riêng cho Quản trị viên: Đặt lại toàn bộ danh sách 29 món mẫu gốc chuẩn Sài Gòn.
+                </p>
                 <button
                   type="button"
                   onClick={() => {
@@ -226,7 +229,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   className="w-full py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Khôi phục toàn bộ thực đơn gốc TP.HCM</span>
+                  <span>Khôi phục toàn bộ thực đơn gốc TP.HCM (29 món)</span>
                 </button>
               </div>
 

@@ -46,7 +46,8 @@ export const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const m = params.get('meal');
     if (m === 'sang' || m === 'trua' || m === 'toi') return m;
-    return detectMealByCurrentTime();
+    const detected = detectMealByCurrentTime();
+    return (detected === 'sang' || detected === 'trua' || detected === 'toi') ? detected : 'toi';
   });
 
   // Excluded & Favorites State
@@ -298,7 +299,6 @@ export const App: React.FC = () => {
       <Header
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
-        onRestoreDefaults={handleRestoreDefaults}
         historyCount={historyCount}
         cloudStatus={cloudStatus}
         isAdmin={isAdmin}
