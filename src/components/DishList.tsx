@@ -116,7 +116,7 @@ export const DishList: React.FC<DishListProps> = ({
       )}
 
       {/* Dish Items Scroll Container */}
-      <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[300px] max-h-[560px]">
+      <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[260px] max-h-[460px] lg:max-h-[560px]">
         {filtered.length === 0 ? (
           <div className="py-12 text-center text-slate-400">
             <span className="text-3xl block mb-2">🍜</span>

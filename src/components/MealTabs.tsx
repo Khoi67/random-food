@@ -29,16 +29,16 @@ export const MealTabs: React.FC<MealTabsProps> = ({
             <button
               key={tab.key}
               onClick={() => onSelectMeal(tab.key)}
-              className={`flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer ${
+              className={`flex items-center justify-center space-x-1 sm:space-x-1.5 px-1.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl font-bold text-[11px] sm:text-xs md:text-sm transition-all duration-200 cursor-pointer ${
                 isActive
                   ? 'bg-gradient-to-r from-brand-500 to-rose-500 text-white shadow-lg shadow-brand-500/25 scale-[1.02]'
                   : 'bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 hover:text-white'
               }`}
             >
-              <span className="flex-shrink-0 text-sm sm:text-base">{tab.icon}</span>
+              <span className="flex-shrink-0 text-xs sm:text-base">{tab.icon}</span>
               <span className="whitespace-nowrap font-bold tracking-tight">{tab.label}</span>
               <span
-                className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-bold ml-1 flex-shrink-0 ${
+                className={`text-[9px] sm:text-[10px] md:text-xs px-1 sm:px-1.5 py-0.5 rounded-full font-bold ml-0.5 sm:ml-1 flex-shrink-0 ${
                   isActive ? 'bg-white/25 text-white' : 'bg-slate-900 text-slate-400'
                 }`}
               >
