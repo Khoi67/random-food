@@ -76,15 +76,14 @@ Mỗi món ăn trong thực đơn đều được trang bị hệ thống đánh
 
 ---
 
-### 📋 Cấu hình Security Rules trên Firebase Console (Khuyên dùng)
-Tại [Firebase Console](https://console.firebase.google.com/) ➔ Realtime Database ➔ tab **Rules**, bạn có thể dán đoạn cấu hình này để ngăn dữ liệu rác:
+### 📋 Cấu hình Security Rules trên Firebase Console (Bắt buộc để lưu món)
+Tại [Firebase Console](https://console.firebase.google.com/) ➔ Realtime Database ➔ tab **Rules**, bạn hãy dán đoạn cấu hình này và bấm **Publish**:
 ```json
 {
   "rules": {
     "shared_dishes": {
       ".read": true,
-      ".write": true,
-      ".validate": "newData.hasChildren() && newData.val().length <= 100"
+      ".write": true
     },
     "admin_config": {
       ".read": true,
@@ -93,6 +92,8 @@ Tại [Firebase Console](https://console.firebase.google.com/) ➔ Realtime Data
   }
 }
 ```
+*(Lưu ý: Không dùng `newData.val().length` vì Firebase Realtime Database không hỗ trợ `.length` trên Object/Array, sẽ làm lỗi Permission Denied).*
+
 
 ---
 

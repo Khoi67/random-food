@@ -1,8 +1,6 @@
 import { 
   STORAGE_KEY, 
-  ADMIN_PIN_HASH_KEY, 
-  OLD_ADMIN_PIN_KEY, 
-  DEFAULT_ADMIN_PIN_HASH 
+  ADMIN_PIN_HASH_KEY 
 } from '../utils/constants.js';
 import { DEFAULT_DISHES_HCM } from '../data/defaultDishes.js';
 
@@ -28,21 +26,11 @@ export async function hashPin(pin) {
 }
 
 /**
- * Khởi tạo & migrate mã PIN Admin sang chuẩn băm SHA-256
+ * Lấy mã PIN đã lưu trong localStorage (hoặc null nếu chưa có)
  */
 export async function initAdminPinSecurity() {
-  const oldPlainPin = localStorage.getItem(OLD_ADMIN_PIN_KEY);
-  if (oldPlainPin) {
-    try {
-      const hashed = await hashPin(oldPlainPin);
-      localStorage.setItem(ADMIN_PIN_HASH_KEY, hashed);
-      localStorage.removeItem(OLD_ADMIN_PIN_KEY);
-      return hashed;
-    } catch (e) {
-      console.warn("Lỗi migrate mã PIN:", e);
-    }
-  }
-  return localStorage.getItem(ADMIN_PIN_HASH_KEY) || DEFAULT_ADMIN_PIN_HASH;
+  localStorage.removeItem('hom_nay_an_gi_admin_pin_v1');
+  return localStorage.getItem(ADMIN_PIN_HASH_KEY) || null;
 }
 
 /**

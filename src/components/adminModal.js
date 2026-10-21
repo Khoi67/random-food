@@ -1,11 +1,11 @@
 import { hashPin } from '../services/storage.js';
 import { syncAdminPinToCloud } from '../services/firebase.js';
-import { ADMIN_PIN_HASH_KEY, OLD_ADMIN_PIN_KEY, DEFAULT_ADMIN_PIN_HASH } from '../utils/constants.js';
+import { ADMIN_PIN_HASH_KEY } from '../utils/constants.js';
 import { showToast } from '../utils/helpers.js';
 
 let isAdminAuthenticated = false;
 let pendingAdminCallback = null;
-let currentPinHash = DEFAULT_ADMIN_PIN_HASH;
+let currentPinHash = null;
 
 export function getIsAdmin() {
   return isAdminAuthenticated;
@@ -113,7 +113,12 @@ async function handleAdminPinSubmit(e) {
   if (!enteredPin) return;
 
   const enteredHash = await hashPin(enteredPin);
-  const targetHash = currentPinHash || localStorage.getItem(ADMIN_PIN_HASH_KEY) || DEFAULT_ADMIN_PIN_HASH;
+  const targetHash = currentPinHash || localStorage.getItem(ADMIN_PIN_HASH_KEY);
+
+  if (!targetHash) {
+    showToast("Đang đồng bộ mã PIN từ Cloud, vui lòng thử lại sau giây lát...", "warning");
+    return;
+  }
 
   if (enteredHash === targetHash) {
     isAdminAuthenticated = true;
@@ -176,7 +181,6 @@ async function handleSaveNewPin() {
     const newHash = await hashPin(newPin);
     currentPinHash = newHash;
     localStorage.setItem(ADMIN_PIN_HASH_KEY, newHash);
-    localStorage.removeItem(OLD_ADMIN_PIN_KEY);
 
     syncAdminPinToCloud(newHash);
     showToast("Đã đổi mã PIN Admin & đồng bộ Cloud!", "success");

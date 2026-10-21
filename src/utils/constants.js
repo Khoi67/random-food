@@ -1,10 +1,7 @@
 export const STORAGE_KEY = 'hom_nay_an_gi_dishes_hcm_v2';
 export const FIREBASE_CONFIG_KEY = 'hom_nay_an_gi_firebase_config_v1';
 export const CACHED_API_CONFIG_KEY = 'hom_nay_an_gi_api_config_cache_v1';
-export const OLD_ADMIN_PIN_KEY = 'hom_nay_an_gi_admin_pin_v1';
 export const ADMIN_PIN_HASH_KEY = 'hom_nay_an_gi_admin_pin_hash_v2';
-// Mã băm SHA-256 mặc định cho PIN '123456'
-export const DEFAULT_ADMIN_PIN_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
 
 // Giới hạn chống spam
 export const ADD_DISH_COOLDOWN_MS = 10000; // 10 giây giãn cách giữa các lần thêm món

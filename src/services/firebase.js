@@ -4,8 +4,7 @@ import {
   FIREBASE_CONFIG_KEY, 
   CACHED_API_CONFIG_KEY, 
   DEFAULT_FIREBASE_CONFIG, 
-  ADMIN_PIN_HASH_KEY, 
-  DEFAULT_ADMIN_PIN_HASH 
+  ADMIN_PIN_HASH_KEY 
 } from '../utils/constants.js';
 import { parseFirebaseConfig, saveDishesLocally } from './storage.js';
 import { showToast } from '../utils/helpers.js';
@@ -145,17 +144,14 @@ export async function initFirebase({
       showToast("Cloud gặp sự cố: " + (error.message || 'Quá tải') + ". Tự động dùng LocalStorage", "warning");
     });
 
-    // Đồng bộ mã PIN Admin (đã mã hóa SHA-256)
+    // Đồng bộ mã PIN Admin (đã mã hóa SHA-256) từ Firebase
     const adminPinRef = ref(firebaseDb, "admin_config/pinHash");
     onValue(adminPinRef, (snapshot) => {
       const cloudPinHash = snapshot.val();
-      const currentPin = getCurrentPinHash();
       if (cloudPinHash && typeof cloudPinHash === 'string' && cloudPinHash.length >= 16) {
         setCurrentPinHash(cloudPinHash);
         localStorage.setItem(ADMIN_PIN_HASH_KEY, cloudPinHash);
         if (onAdminPinSync) onAdminPinSync(cloudPinHash);
-      } else if (!cloudPinHash && currentPin && currentPin !== DEFAULT_ADMIN_PIN_HASH) {
-        set(ref(firebaseDb, "admin_config/pinHash"), currentPin).catch(e => console.warn(e));
       }
     }, (err) => {
       console.warn("Không thể đồng bộ mã PIN từ Cloud:", err);
@@ -177,7 +173,12 @@ export function saveDishesCloud(dishes) {
       const dishesRef = ref(firebaseDb, "shared_dishes");
       set(dishesRef, dishes).catch(err => {
         console.error("Lỗi đẩy lên Firebase:", err);
-        showToast("Lỗi kết nối Cloud, dữ liệu đã được lưu an toàn trên máy bạn", "warning");
+        const errMsg = err?.message || '';
+        if (errMsg.includes('PERMISSION_DENIED') || err?.code === 'PERMISSION_DENIED') {
+          showToast("Firebase từ chối quyền ghi (Permission Denied). Hãy cập nhật Rules trên Firebase Console!", "error");
+        } else {
+          showToast("Lỗi kết nối Cloud, dữ liệu đã được lưu an toàn trên máy bạn", "warning");
+        }
       });
     } catch (e) {
       console.error("Lỗi gọi Firebase set:", e);
