@@ -3,6 +3,7 @@ export const FIREBASE_CONFIG_KEY = 'hom_nay_an_gi_firebase_config_v1';
 export const CACHED_API_CONFIG_KEY = 'hom_nay_an_gi_api_config_cache_v1';
 export const ADMIN_PIN_HASH_KEY = 'hom_nay_an_gi_admin_pin_hash_v2';
 export const ADMIN_EMAIL_KEY = 'hom_nay_an_gi_admin_email_v1';
+export const ADMIN_EMAIL_HASH_KEY = 'hom_nay_an_gi_admin_email_hash_v1';
 export const RECAPTCHA_KEY = 'hom_nay_an_gi_recaptcha_key_v1';
 
 // Giới hạn chống spam

@@ -1,5 +1,11 @@
+import crypto from 'crypto';
+
 export default function handler(req, res) {
   // Trả về cấu hình Firebase từ biến môi trường của Vercel
+  // Bảo mật: Mã hóa 1 chiều SHA-256 cho ADMIN_EMAIL để KHÔNG BAO GIỜ truyền email dạng thô về client
+  const rawEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+  const adminEmailHash = rawEmail ? crypto.createHash('sha256').update(rawEmail).digest('hex') : "";
+
   const config = {
     apiKey: process.env.FIREBASE_API_KEY || "",
     authDomain: process.env.FIREBASE_AUTH_DOMAIN || "",
@@ -9,7 +15,7 @@ export default function handler(req, res) {
     messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "",
     appId: process.env.FIREBASE_APP_ID || "",
     measurementId: process.env.FIREBASE_MEASUREMENT_ID || "",
-    adminEmail: process.env.ADMIN_EMAIL || "",
+    adminEmailHash,
     recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY || "",
     recaptchaType: process.env.RECAPTCHA_TYPE || "v3"
   };

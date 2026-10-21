@@ -1,8 +1,12 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import crypto from 'crypto';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+
+  const rawEmail = (env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const adminEmailHash = rawEmail ? crypto.createHash('sha256').update(rawEmail).digest('hex') : '';
 
   return {
     plugins: [
@@ -21,7 +25,7 @@ export default defineConfig(({ mode }) => {
                 messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID || '',
                 appId: env.FIREBASE_APP_ID || '',
                 measurementId: env.FIREBASE_MEASUREMENT_ID || '',
-                adminEmail: env.ADMIN_EMAIL || '',
+                adminEmailHash,
                 recaptchaSiteKey: env.RECAPTCHA_SITE_KEY || '',
                 recaptchaType: env.RECAPTCHA_TYPE || 'v3',
               };

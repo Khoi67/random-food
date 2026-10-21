@@ -13,11 +13,11 @@ import {
   FIREBASE_CONFIG_KEY, 
   CACHED_API_CONFIG_KEY, 
   DEFAULT_FIREBASE_CONFIG, 
-  ADMIN_PIN_HASH_KEY,
+  ADMIN_EMAIL_HASH_KEY,
   ADMIN_EMAIL_KEY,
   RECAPTCHA_KEY
 } from '../utils/constants.js';
-import { parseFirebaseConfig, saveDishesLocally, normalizeDish } from './storage.js';
+import { parseFirebaseConfig, saveDishesLocally, normalizeDish, hashString } from './storage.js';
 import { showToast } from '../utils/helpers.js';
 
 let firebaseApp = null;
@@ -26,7 +26,13 @@ let firebaseAuth = null;
 let appCheck = null;
 let isFirebaseConnected = false;
 let currentUser = null;
-let adminEmail = localStorage.getItem(ADMIN_EMAIL_KEY) || "";
+let adminEmailHash = localStorage.getItem(ADMIN_EMAIL_HASH_KEY) || "";
+let isAdminUser = false;
+
+// Dọn dẹp key cũ lưu email dạng thô để đảm bảo an toàn tuyệt đối
+try {
+  localStorage.removeItem(ADMIN_EMAIL_KEY);
+} catch (_) {}
 
 export function getFirebaseDb() {
   return firebaseDb;
@@ -44,22 +50,34 @@ export function getCurrentUser() {
   return currentUser;
 }
 
-export function getAdminEmail() {
-  return adminEmail;
+export function getAdminEmailHash() {
+  return adminEmailHash;
 }
 
-export function setAdminEmail(email) {
-  adminEmail = email ? email.trim().toLowerCase() : "";
-  if (adminEmail) {
-    localStorage.setItem(ADMIN_EMAIL_KEY, adminEmail);
+export function setAdminEmailHash(hash) {
+  adminEmailHash = hash ? String(hash).trim().toLowerCase() : "";
+  if (adminEmailHash) {
+    localStorage.setItem(ADMIN_EMAIL_HASH_KEY, adminEmailHash);
   }
+  checkCurrentUserAdmin();
+}
+
+export async function checkCurrentUserAdmin() {
+  if (!currentUser || currentUser.isAnonymous || !currentUser.email || !adminEmailHash) {
+    isAdminUser = false;
+    return false;
+  }
+  try {
+    const userHash = await hashString(currentUser.email);
+    isAdminUser = (userHash === adminEmailHash);
+  } catch (_) {
+    isAdminUser = false;
+  }
+  return isAdminUser;
 }
 
 export function isCurrentUserAdmin() {
-  if (!currentUser) return false;
-  if (currentUser.isAnonymous) return false;
-  if (!currentUser.email || !adminEmail) return false;
-  return currentUser.email.toLowerCase() === adminEmail.toLowerCase();
+  return isAdminUser;
 }
 
 /**
@@ -95,7 +113,7 @@ export async function initFirebase({
       const parsed = JSON.parse(cachedApiConfig);
       if (parsed && parsed.databaseURL && parsed.apiKey) {
         configObj = parsed;
-        if (parsed.adminEmail) setAdminEmail(parsed.adminEmail);
+        if (parsed.adminEmailHash) setAdminEmailHash(parsed.adminEmailHash);
       }
     } catch (e) { }
   }
@@ -112,19 +130,19 @@ export async function initFirebase({
         if (apiConfig && apiConfig.databaseURL && apiConfig.apiKey) {
           configObj = apiConfig;
           localStorage.setItem(CACHED_API_CONFIG_KEY, JSON.stringify(apiConfig));
-          if (apiConfig.adminEmail) setAdminEmail(apiConfig.adminEmail);
+          if (apiConfig.adminEmailHash) setAdminEmailHash(apiConfig.adminEmailHash);
         }
       }
     } catch (err) {
       console.warn("Không thể tải cấu hình Firebase từ /api/config:", err.message);
     }
   } else {
-    // Đã có cache: vẫn tải ngầm để cập nhật adminEmail hoặc env mới nhất
+    // Đã có cache: vẫn tải ngầm để cập nhật adminEmailHash hoặc env mới nhất
     fetch('/api/config')
       .then((res) => res.ok && res.json())
       .then((apiConfig) => {
         if (apiConfig) {
-          if (apiConfig.adminEmail) setAdminEmail(apiConfig.adminEmail);
+          if (apiConfig.adminEmailHash) setAdminEmailHash(apiConfig.adminEmailHash);
           localStorage.setItem(CACHED_API_CONFIG_KEY, JSON.stringify(apiConfig));
         }
       })
@@ -208,9 +226,9 @@ export async function initFirebase({
           console.warn("Lỗi Anonymous Auth:", authErr.message);
         }
       }
-      const adminStatus = isCurrentUserAdmin();
+      await checkCurrentUserAdmin();
       if (onAuthChange) {
-        onAuthChange({ user: currentUser, isAdmin: adminStatus });
+        onAuthChange({ user: currentUser, isAdmin: isAdminUser });
       }
     });
 
@@ -278,30 +296,6 @@ export async function initFirebase({
       if (onStatusChange) onStatusChange('local', 'Lỗi Cloud (' + (error.code || 'không thể kết nối') + '), đang dùng LocalStorage');
     });
 
-    // 5. Đồng bộ mã PIN Admin
-    const adminPinRef = ref(firebaseDb, "admin_config/pinHash");
-    onValue(adminPinRef, (snapshot) => {
-      const cloudPinHash = snapshot.val();
-      if (cloudPinHash && typeof cloudPinHash === 'string' && cloudPinHash.length >= 16) {
-        setCurrentPinHash(cloudPinHash);
-        localStorage.setItem(ADMIN_PIN_HASH_KEY, cloudPinHash);
-        if (onAdminPinSync) onAdminPinSync(cloudPinHash);
-      }
-    }, (err) => {
-      console.warn("Không thể đồng bộ mã PIN từ Cloud:", err);
-    });
-
-    // 6. Đồng bộ Admin Email từ Cloud nếu có cấu hình
-    const cloudAdminEmailRef = ref(firebaseDb, "admin_config/adminEmail");
-    onValue(cloudAdminEmailRef, (snapshot) => {
-      const val = snapshot.val();
-      if (val && typeof val === 'string' && val.includes('@')) {
-        setAdminEmail(val);
-        const adminStatus = isCurrentUserAdmin();
-        if (onAuthChange) onAuthChange({ user: currentUser, isAdmin: adminStatus });
-      }
-    }, (err) => { });
-
   } catch (e) {
     console.error("Lỗi khởi tạo Firebase SDK:", e);
     isFirebaseConnected = false;
@@ -322,23 +316,14 @@ export async function signInAdminGoogle() {
     provider.setCustomParameters({ prompt: 'select_account' });
     const result = await signInWithPopup(firebaseAuth, provider);
     currentUser = result.user;
-    const isMatched = isCurrentUserAdmin();
+    await checkCurrentUserAdmin();
 
-    if (isMatched) {
-      setAdminEmail(currentUser.email);
-      showToast(`Đăng nhập Google Admin thành công: ${currentUser.email} 👑`, "success");
-      // Tự động đồng bộ email admin lên Firebase Realtime Database nếu có kết nối
-      if (firebaseDb) {
-        try {
-          const adminEmailRef = ref(firebaseDb, "admin_config/adminEmail");
-          set(adminEmailRef, currentUser.email).catch(() => {});
-        } catch (_) {}
-      }
+    if (isAdminUser) {
+      showToast("Đăng nhập Quản trị viên thành công! 👑", "success");
     } else {
-      const configured = adminEmail || 'chưa đặt trong .env';
-      showToast(`Đã đăng nhập (${currentUser.email}). Chú ý: Email không khớp với ADMIN_EMAIL (${configured}).`, "warning");
+      showToast("Tài khoản Google này không có quyền Quản trị viên.", "warning");
     }
-    return { user: currentUser, isAdmin: isMatched };
+    return { user: currentUser, isAdmin: isAdminUser };
   } catch (err) {
     console.error("Lỗi Google Sign-In:", err);
     showToast("Không thể đăng nhập Google: " + (err.message || 'Hủy bỏ'), "error");
@@ -353,6 +338,7 @@ export async function signOutAdminGoogle() {
   if (!firebaseAuth) return;
   try {
     await signOut(firebaseAuth);
+    isAdminUser = false;
     // Tự động chuyển về tài khoản ẩn danh
     const cred = await signInAnonymously(firebaseAuth);
     currentUser = cred.user;

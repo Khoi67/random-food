@@ -8,10 +8,15 @@ import { DEFAULT_DISHES_HCM } from '../data/defaultDishes.js';
  * Mã hóa 1 chiều SHA-256 an toàn
  */
 export async function hashPin(pin) {
-  const text = String(pin).trim();
-  if (window.crypto && window.crypto.subtle) {
+  return hashString(pin);
+}
+
+export async function hashString(str) {
+  if (!str) return '';
+  const text = String(str).trim().toLowerCase();
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
     const msgBuffer = new TextEncoder().encode(text);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }

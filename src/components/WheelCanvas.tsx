@@ -196,7 +196,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
     const handleResize = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
-      const size = Math.min(parent.clientWidth - 16, 380);
+      const size = Math.min(parent.clientWidth - 16, 440);
       const dpr = window.devicePixelRatio || 1;
 
       canvas.width = Math.round(size * dpr);
@@ -290,7 +290,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
   return (
     <div className="flex flex-col items-center justify-center relative select-none w-full">
       {/* Canvas Container */}
-      <div className="relative w-full max-w-[380px] aspect-square flex items-center justify-center p-1 sm:p-2">
+      <div className="relative w-full max-w-[440px] aspect-square flex items-center justify-center p-1 sm:p-2">
         {/* Top Pointer Indicator */}
         <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none drop-shadow-[0_4px_10px_rgba(234,88,12,0.8)]">
           <div className="w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[32px] border-t-amber-400" />
@@ -306,24 +306,18 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
           onClick={spin}
           disabled={isSpinning || slices.length === 0}
           aria-label="Quay vòng may mắn"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-brand-600 via-orange-500 to-amber-400 text-white font-black text-xs sm:text-sm shadow-2xl border-4 border-slate-900 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center leading-tight tracking-wider"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-brand-600 via-orange-500 to-amber-400 text-white font-black text-sm sm:text-base shadow-2xl border-4 border-slate-900 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center leading-tight tracking-wider"
         >
           <span>QUAY</span>
-          <span className="text-[9px] font-semibold text-amber-100">NGAY</span>
+          <span className="text-[10px] sm:text-xs font-semibold text-amber-100">
+            {isSpinning ? '...' : 'NGAY'}
+          </span>
         </button>
       </div>
 
-      {/* Main Big Spin Button */}
-      <div className="mt-4 w-full max-w-sm px-2 sm:px-4">
-        <button
-          onClick={spin}
-          disabled={isSpinning || slices.length === 0}
-          className="w-full py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 via-orange-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-black text-sm sm:text-base shadow-xl shadow-brand-500/30 hover:shadow-brand-500/50 active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          <span className="text-lg sm:text-xl">🎲</span>
-          <span>{isSpinning ? 'ĐANG QUAY...' : 'QUAY NGAY HÔM NAY!'}</span>
-        </button>
-        <p className="text-[11px] text-center text-slate-400 mt-2 px-1">
+      {/* Quick Tips / Hints below Wheel */}
+      <div className="mt-3 w-full max-w-sm px-2 text-center">
+        <p className="text-xs text-slate-400">
           {slices.length > 20 ? (
             <span className="text-amber-300">
               ⚡ Đang có {slices.length} món trên vòng. Có thể dùng bộ lọc nhanh (Giá/Kiểu) để quay tập trung hơn!
@@ -331,7 +325,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
           ) : slices.some((s) => s.isFav) ? (
             '❤️ Món yêu thích có xác suất trúng gấp đôi (2x)!'
           ) : (
-            'Mẹo: Bấm ❤️ ở danh sách để nhân đôi xác suất trúng món yêu thích.'
+            'Mẹo: Nhấn nút QUAY ở tâm vòng quay để bắt đầu.'
           )}
         </p>
       </div>

@@ -4,8 +4,7 @@ import { showToast } from '../utils/helpers.js';
 import { 
   signInAdminGoogle, 
   signOutAdminGoogle, 
-  getCurrentUser, 
-  isCurrentUserAdmin 
+  getCurrentUser 
 } from '../services/firebase.js';
 
 interface AdminModalProps {
@@ -28,7 +27,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   if (!isOpen) return null;
 
   const currentUser = getCurrentUser();
-  const isGoogleAdmin = isCurrentUserAdmin();
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -96,8 +94,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 {currentUser && !currentUser.isAnonymous ? (
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate">Tài khoản Google:</span>
-                    <span className={`font-mono font-semibold text-right truncate ${isGoogleAdmin ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {currentUser.email} {isGoogleAdmin ? '👑 (Admin)' : '❌ (Chưa cấp quyền)'}
+                    <span className={`font-mono font-semibold text-right truncate ${isAdmin ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {currentUser.email} {isAdmin ? '👑 (Admin)' : '❌ (Chưa cấp quyền)'}
                     </span>
                   </div>
                 ) : (
