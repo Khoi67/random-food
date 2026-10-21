@@ -24,6 +24,13 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   const [history, setHistory] = useState<SpinHistoryItem[]>(getSpinHistory());
   const [avoidDays, setLocalAvoidDays] = useState<number>(getAvoidDays());
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setHistory(getSpinHistory());
+      setLocalAvoidDays(getAvoidDays());
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleDeleteItem = (id: string) => {

@@ -276,7 +276,7 @@ export const App: React.FC = () => {
 
   // Spin Winning Dish
   const handleWinner = (dish: Dish) => {
-    recordSpinHistory(dish.id, dish.name, currentMeal);
+    recordSpinHistory(dish, currentMeal);
     setHistoryCount(getSpinHistory().length);
     trackSpin(dish.id, dish.name, currentMeal);
     setWinnerDish(dish);

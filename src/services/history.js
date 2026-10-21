@@ -36,13 +36,29 @@ export function getSpinHistory() {
 /**
  * Ghi nhận một món đã quay trúng vào lịch sử
  */
-export function recordSpinHistory(dish, mealType = 'sang') {
-  if (!dish || !dish.id) return;
+export function recordSpinHistory(dishOrId, nameOrMeal = 'sang', maybeMeal = 'sang') {
+  if (!dishOrId) return;
+
+  let dishId = '';
+  let dishName = '';
+  let mealType = 'sang';
+
+  if (typeof dishOrId === 'object' && dishOrId !== null) {
+    dishId = dishOrId.id;
+    dishName = dishOrId.name || 'Món ăn';
+    mealType = typeof nameOrMeal === 'string' ? nameOrMeal : 'sang';
+  } else {
+    dishId = String(dishOrId);
+    dishName = typeof nameOrMeal === 'string' ? nameOrMeal : 'Món ăn';
+    mealType = typeof maybeMeal === 'string' ? maybeMeal : 'sang';
+  }
+
+  if (!dishId) return;
   const history = getSpinHistory();
   const entry = {
     id: 'hist_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-    dishId: dish.id,
-    dishName: dish.name,
+    dishId: dishId,
+    dishName: dishName,
     timestamp: Date.now(),
     mealType: mealType
   };
