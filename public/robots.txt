@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://random-food-chi.vercel.app/sitemap.xml

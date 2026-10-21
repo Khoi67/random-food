@@ -1,0 +1,72 @@
+{
+  "name": "Hôm Nay Ăn Gì Ở TP.HCM? - Vòng Quay Ẩm Thực",
+  "short_name": "Hôm Nay Ăn Gì",
+  "description": "Vòng quay may mắn chọn món ăn sáng, trưa, tối chuẩn vị Sài Gòn kèm danh sách địa chỉ quán nổi tiếng và chỉ đường Google Maps!",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "lang": "vi",
+  "dir": "ltr",
+  "categories": ["food", "lifestyle", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Vòng Quay May Mắn Ẩm Thực TP.HCM"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Bữa Sáng Sài Gòn",
+      "short_name": "Bữa Sáng",
+      "description": "Quay nhanh món ăn sáng thơm ngon",
+      "url": "/?meal=sang",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Bữa Trưa Sài Gòn",
+      "short_name": "Bữa Trưa",
+      "description": "Quay nhanh món ăn trưa no bụng",
+      "url": "/?meal=trua",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Bữa Tối / Ăn Vặt",
+      "short_name": "Bữa Tối",
+      "description": "Khám phá món tối & lẩu ốc Sài Gòn",
+      "url": "/?meal=toi",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

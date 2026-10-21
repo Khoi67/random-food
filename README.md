@@ -1,83 +1,87 @@
-# Hôm Nay Ăn Gì Ở TP.HCM? - Vòng Quay May Mắn Ẩm Thực Sài Gòn (Cloud Sync) 🍜
+# Hôm Nay Ăn Gì Ở TP.HCM? - Vòng Quay May Mắn Ẩm Thực Sài Gòn 🍜
 
-Ứng dụng web hiện đại (Vite, HTML5, Tailwind CSS, Canvas API, Firebase Modular SDK) được tái cấu trúc theo mô-đun hóa rõ ràng, hiệu năng cao, hỗ trợ Hot Reload và sẵn sàng deploy tự động lên Vercel.
+Ứng dụng web giải quyết câu hỏi muôn thuở **"Hôm nay ăn gì?"** tại Thành phố Hồ Chí Minh. Được tối ưu theo phong cách **Mobile-First**, giao diện Dark Theme hiện đại kết hợp vòng quay may mắn có trọng số, bộ lọc thông minh, tính năng quán gần tôi, chia sẻ kết quả và đồng bộ đám mây Realtime.
 
 ---
 
-## 💻 Chạy Ứng Dụng Ở Local (Vite Dev Server)
+## 🚀 Công Nghệ Sử Dụng (Tech Stack)
 
+- **Frontend Core**: React 19, TypeScript, Canvas API (vẽ vòng quay tương tác), Lucide React icons.
+- **Build Tool**: [Vite](https://vitejs.dev/) - Tối ưu build cực nhanh, hỗ trợ Hot Module Replacement (HMR).
+- **Styling**: Tailwind CSS với theme Dark Mode cao cấp (`slate-950`), WCAG AA compliant.
+- **Backend / Realtime**: [Firebase Realtime Database](https://firebase.google.com/) (Modular SDK v13) & Firebase Anonymous Auth.
+- **PWA (Progressive Web App)**: Service Worker cache offline, Web App Manifest, cho phép cài đặt lên màn hình chính (A2HS).
+- **Analytics**: [Vercel Analytics](https://vercel.com/analytics) (không thu thập thông tin định danh cá nhân - Zero PII).
+- **Testing**: Node.js Native Test Runner (`node:test`, `node:assert/strict`).
+
+---
+
+## 💻 1. Hướng Dẫn Chạy Ở Local (Local Development)
+
+### Yêu Cầu Môi Trường
+- **Node.js**: Phiên bản `>= 18.0.0` (Khuyến nghị Node.js v20+ hoặc v22+).
+- **Trình quản lý gói**: `npm` đi kèm Node.js.
+
+### Các Bước Cài Đặt & Chạy
 ```bash
-# 1. Cài đặt thư viện phụ thuộc (nếu chưa có)
+# 1. Clone repository về máy
+git clone https://github.com/Khoi67/random-food.git
+cd random-food
+
+# 2. Cài đặt các thư viện phụ thuộc
 npm install
 
-# 2. Khởi động máy chủ phát triển
+# 3. Khởi chạy máy chủ phát triển (Vite Dev Server)
 npm run dev
+
+# 4. Chạy kiểm thử tự động (Unit Test)
+npm test
+
+# 5. Build kiểm tra bản Production
+npm run build
 ```
-Truy cập: `http://localhost:5173/`
 
-
-## ✨ Điểm Mới: Hỗ Trợ Dùng Chung Realtime Qua Firebase
-
-Ứng dụng hỗ trợ cơ chế lưu trữ kép **Hybrid (LocalStorage + Firebase Realtime Database)**:
-- **Mặc định**: Lưu trữ an toàn trong `localStorage` trên máy người dùng.
-- **Khi kết nối Firebase**: Trở thành **ứng dụng dùng chung Realtime**. Khi bất kỳ ai thêm, sửa hoặc xóa món/quán ăn, vòng quay trên máy của tất cả mọi người khác sẽ **tự động cập nhật tức thì** mà không cần reload trang.
+Sau khi chạy `npm run dev`, mở trình duyệt truy cập: `http://localhost:5173/`
 
 ---
 
-## 🛠️ Hướng Dẫn Kích Hoạt Firebase Dùng Chung (Miễn phí 100%)
+## 🔑 2. Biến Môi Trường Cần Thiết (Environment Variables)
 
-Chỉ cần thực hiện 3 bước đơn giản:
+Ứng dụng sử dụng Serverless Endpoint `/api/config.js` trên Vercel để bảo vệ các API Key của Firebase và phục vụ cho client với bộ nhớ đệm Edge Cache (24h).
 
-1. **Tạo Project**:
-   - Truy cập [Firebase Console](https://console.firebase.google.com/) bằng tài khoản Google của bạn.
-   - Bấm **Add project** (Đặt tên bất kỳ, ví dụ `hom-nay-an-gi`).
-2. **Kích hoạt Realtime Database**:
-   - Ở thanh menu bên trái, chọn **Build ➔ Realtime Database**.
-   - Bấm **Create Database** ➔ Chọn vị trí máy chủ (ví dụ `Singapore` hoặc `United States`).
-   - Ở bước chọn Security Rules, chọn **Start in test mode** (để tất cả mọi người có thể cùng thêm/xóa món ăn) ➔ Bấm **Enable**.
-3. **Lấy mã cấu hình**:
-   - Bấm vào icon bánh răng **Project Settings** ở góc trên bên trái.
-   - Kéo xuống mục **Your apps**, bấm vào icon Web `</>` để tạo web app.
-   - Sao chép toàn bộ đoạn mã `const firebaseConfig = { ... };`.
-4. **Dán vào ứng dụng**:
-   - Mở ứng dụng web lên, bấm vào nút **"Đồng bộ Cloud"** ở góc trên bên phải thanh tiêu đề.
-   - Dán đoạn mã vừa copy vào ô nhập và bấm **"Lưu & Kết Nối Ngay"**.
-   - Đèn trạng thái sẽ chuyển sang màu xanh lá **"Firebase Realtime"** 🔥. Giờ đây bất kỳ ai truy cập đường link web của bạn đều sẽ dùng chung 1 thực đơn!
+### Danh Sách Biến Môi Trường (Vercel & Local)
+Tạo file `.env.local` (nếu chạy Serverless với Vercel CLI) hoặc cấu hình trong **Vercel Project Settings ➔ Environment Variables**:
 
-## 🔐 Phân Quyền Admin (Bảo Vệ Thực Đơn Dùng Chung)
+| Tên Biến | Ý Nghĩa / Mục Đích | Bắt Buộc? | Ví Dụ |
+| :--- | :--- | :---: | :--- |
+| `FIREBASE_API_KEY` | Web API Key của dự án Firebase | **Có** | `AIzaSyD-xxx...` |
+| `FIREBASE_AUTH_DOMAIN` | Tên miền xác thực Firebase | **Có** | `random-food-hcm.firebaseapp.com` |
+| `FIREBASE_DATABASE_URL` | URL kết nối Realtime Database | **Có** | `https://random-food-hcm-default-rtdb.asia-southeast1.firebasedatabase.app` |
+| `FIREBASE_PROJECT_ID` | Project ID trên Firebase Console | **Có** | `random-food-hcm` |
+| `FIREBASE_STORAGE_BUCKET` | Storage Bucket của Firebase | Không | `random-food-hcm.appspot.com` |
+| `FIREBASE_MESSAGING_SENDER_ID` | ID gửi thông báo | Không | `123456789012` |
+| `FIREBASE_APP_ID` | Application ID của Web App | **Có** | `1:123456789012:web:abcdef123456` |
+| `ADMIN_PIN` | Mã PIN mặc định cho quyền Quản trị viên | Tùy chọn | `123456` |
 
-Khi nhiều người cùng truy cập ứng dụng chia sẻ Firebase, các thao tác nguy hiểm như **Xóa món ăn** hoặc **Khôi phục mẫu gốc** sẽ được bảo vệ bởi **Mã PIN Admin**:
-- **Khách thường**: Có thể quay vòng may mắn, xem thực đơn, xem quán ăn chỉ đường Google Maps, thêm món mới.
-- **Admin**: Được cấp quyền **Xóa món ăn** và **Khôi phục mẫu**.
-- **Cách mở khóa**:
-  1. Bấm vào nút `🔒 Khách` ở góc trên bên phải.
-  2. Nhập mã PIN và bấm **Xác nhận**.
-  3. Trạng thái sẽ chuyển thành `🔓 Admin`. Bạn có thể đổi mã PIN mới tại đây.
+> 💡 **Cơ chế Fallback an toàn:**
+> Nếu không cấu hình các biến môi trường này, ứng dụng sẽ chạy ở chế độ **Local-First (Ngoại tuyến 🛡️)**. Dữ liệu thực đơn, lịch sử 14 ngày và món yêu thích vẫn được lưu trữ đầy đủ trong `localStorage` trên máy người dùng.
 
 ---
 
-## ⭐ Hệ Thống Đánh Giá & Review Món Ăn (Realtime Foodie Reviews)
+## 🔥 3. Hướng Dẫn Cấu Hình Firebase (Realtime Database & Auth)
 
-Mỗi món ăn trong thực đơn đều được trang bị hệ thống đánh giá tương tác:
-- **Xem điểm số & Review**: Bấm vào nút `⭐ Đánh giá` ở từng món hoặc bấm `⭐ Xem review 💬` ngay trên popup sau khi quay trúng món.
-- **Dữ liệu mẫu chân thực**: Tích hợp sẵn hàng chục bình luận, chia sẻ quán ngon tâm đắc từ các tín đồ ẩm thực Sài Gòn (Ba Ghiền, Huỳnh Hoa, Phở Lệ, Út Hưng, Ốc Đào...).
-- **Gửi đánh giá mới**: Chọn từ 1 đến 5 sao với hiệu ứng chọn sao trực quan, để lại tên và cảm nhận. 
-- **Đồng bộ tự động**: Đánh giá mới sẽ được đồng bộ tức thì lên Firebase Realtime Database và lưu cache vào `localStorage`.
+Chỉ cần 3 bước đơn giản trên [Firebase Console](https://console.firebase.google.com/):
 
----
+### Bước 1: Tạo Project & Web App
+1. Truy cập [Firebase Console](https://console.firebase.google.com/) ➔ Bấm **Add project** (Đặt tên ví dụ `random-food-hcm`).
+2. Tắt Google Analytics (nếu muốn tối giản) ➔ Bấm **Create project**.
+3. Tại trang tổng quan, bấm vào biểu tượng Web `</>` để tạo App ➔ Đặt nickname và lưu lại mã cấu hình `firebaseConfig`.
 
-## 🛡️ Cơ Chế Bảo Vệ Hạn Mức Free (Anti-Spam & Quota Shield)
+### Bước 2: Kích hoạt Realtime Database
+1. Ở menu bên trái, chọn **Build ➔ Realtime Database** ➔ Bấm **Create Database**.
+2. Chọn vị trí máy chủ gần Việt Nam nhất: **Singapore (`asia-southeast1`)**.
+3. Tại tab **Rules**, dán đoạn cấu hình phân quyền bên dưới và bấm **Publish**:
 
-Để ứng dụng luôn hoạt động mượt mà và **không bao giờ vượt quá hạn ngạch miễn phí** của Firebase và Vercel:
-1. **Bộ đệm Edge CDN & Local Cache**: Cấu hình Firebase chỉ tải 1 lần qua `/api/config` và được lưu bộ nhớ đệm (Cache 24 giờ). Khi người dùng reload (F5) liên tục, web không gửi thêm request nào lên Serverless của Vercel (tiết kiệm 99% request).
-2. **Giới hạn giãn cách (Rate-Limit Cooldown)**: Mỗi lần thêm món mới có thời gian chờ (cooldown 5 giây) để ngăn chặn spam nút gửi liên tiếp.
-3. **Giới hạn số lượng (Max Dishes Cap)**: Thực đơn giới hạn tối đa 80 món để giữ dung lượng database luôn siêu nhẹ (< 50 KB).
-4. **Tự động Fallback**: Nếu mạng chập chờn, Firebase bị ngắt kết nối hoặc hết hạn ngạch gói Free, ứng dụng tự động chuyển sang `LocalStorage` trên máy người dùng, đảm bảo web luôn hoạt động 100% thời gian.
-
----
-
-### 📋 Cấu hình Security Rules trên Firebase Console (Bắt buộc để lưu món)
-Tại [Firebase Console](https://console.firebase.google.com/) ➔ Realtime Database ➔ tab **Rules**, bạn hãy dán đoạn cấu hình này và bấm **Publish**:
 ```json
 {
   "rules": {
@@ -88,37 +92,76 @@ Tại [Firebase Console](https://console.firebase.google.com/) ➔ Realtime Data
     "admin_config": {
       ".read": true,
       ".write": true
+    },
+    "reviews": {
+      ".read": true,
+      ".write": true
+    },
+    "reports": {
+      ".read": true,
+      ".write": true
     }
   }
 }
 ```
-*(Lưu ý: Không dùng `newData.val().length` vì Firebase Realtime Database không hỗ trợ `.length` trên Object/Array, sẽ làm lỗi Permission Denied).*
 
-
----
-
-## 🍜 Thực Đơn Chuyên Biệt TP.HCM (Sài Gòn)
-- **Hơn 20 món ăn đặc sản**: Cơm tấm, Hủ tiếu Nam Vang, Bánh mì Huỳnh Hoa, Phở Lệ, Bún bò Út Hưng, Bánh canh cua Út Lệ, Ốc Đào, Lẩu bò Hoàng Thu, Lẩu dê 404, Phá lấu bò Cô Thảo, Dimsum Tiến Phát Q.5...
-- **Mỗi món có danh sách 3 - 5 quán ăn thật kèm địa chỉ cụ thể** tại các quận của TP.HCM.
-- Khi quay trúng món: Hiển thị danh sách quán, từng quán có nút **"Chỉ đường"** riêng mở thẳng Google Maps.
+### Bước 3: Bật Anonymous Authentication (Khuyến nghị)
+1. Chọn **Build ➔ Authentication** ➔ Tab **Sign-in method**.
+2. Bật nhà cung cấp **Anonymous (Ẩn danh)** ➔ Bấm **Save**. Điều này cho phép người dùng đọc/ghi dữ liệu an toàn mà không cần tạo tài khoản.
 
 ---
 
-## 🚀 Cách Deploy Lên Vercel (Tự Động Cập Nhật Qua GitHub)
+## ☁️ 4. Hướng Dẫn Deploy Lên Vercel
 
-1. **Liên kết GitHub Repo**:
-   - Truy cập [vercel.com](https://vercel.com/) ➔ Chọn **Add New Project**.
-   - Chọn kho lưu trữ `Khoi67/random-food`.
-2. **Cấu hình Environment Variables (Khuyên dùng)**:
-   - Thêm biến môi trường trong mục **Settings ➔ Environment Variables** trên Vercel:
-     - `FIREBASE_API_KEY`: API Key của Firebase
-     - `FIREBASE_AUTH_DOMAIN`: Auth Domain
-     - `FIREBASE_DATABASE_URL`: Đường link Database URL (ví dụ: `https://...firebasedatabase.app`)
-     - `FIREBASE_PROJECT_ID`: Project ID
-     - `FIREBASE_STORAGE_BUCKET`: Storage Bucket
-     - `FIREBASE_MESSAGING_SENDER_ID`: Sender ID
-     - `FIREBASE_APP_ID`: App ID
-   - Ứng dụng tự động lấy thông tin từ Serverless Function `/api/config` và kết nối Firebase ngay khi tải trang mà không làm lộ secret trên GitHub.
-3. **Mỗi lần git push**:
-   - Khi bạn commit và push code lên nhánh `main` của GitHub, Vercel sẽ tự động build và cập nhật bản mới nhất trong vòng vài giây!
+Dự án được tối ưu hóa 100% để triển khai tự động lên Vercel:
 
+### Cách 1: Deploy qua Giao Diện Web Vercel (Khuyên dùng)
+1. Đẩy code lên GitHub repository:
+   ```bash
+   git push origin main
+   ```
+2. Truy cập [Vercel Dashboard](https://vercel.com/) ➔ Bấm **Add New... ➔ Project**.
+3. Chọn repo `random-food` (hoặc `random-ai`) từ tài khoản GitHub của bạn.
+4. Kiểm tra cấu hình Build:
+   - **Framework Preset**: `Vite` (Vercel tự động nhận diện).
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+5. Trong mục **Environment Variables**, thêm đầy đủ các biến môi trường Firebase đã liệt kê ở Mục 2.
+6. Bấm **Deploy**. Vercel sẽ tự động build và cấp domain HTTPS miễn phí.
+
+### Cách 2: Deploy qua Vercel CLI
+```bash
+# Cài đặt Vercel CLI
+npm i -g vercel
+
+# Đăng nhập và deploy
+vercel --prod
+```
+
+---
+
+## 🧪 5. Kiểm Thử Tự Động (Unit Testing)
+
+Bộ kiểm thử được viết bằng module chuẩn `node:test` và `node:assert/strict` của Node.js:
+- **Kiểm thử bộ lọc (`filterDishes`)**: Lọc theo bữa ăn, trạng thái kiểm duyệt, món tạm loại hôm nay, món tránh lặp lại trong N ngày gần nhất, khoảng giá, kiểu nước/khô, món chay.
+- **Kiểm thử vòng quay có trọng số (`computeWeightedSlices`, `pickWeightedWinner`)**: Xác nhận món Yêu thích nhận trọng số 2x, tính toán góc phân bổ chuẩn $2\pi$, chọn kết quả xác định (deterministic) và phân phối xác suất thống kê thực tế.
+
+Chạy lệnh test:
+```bash
+npm test
+```
+Kết quả mong đợi: `pass 13, fail 0` trong ~250ms.
+
+---
+
+## 📱 6. PWA & Cài Đặt Lên Màn Hình Chính
+
+- **Máy tính (Chrome, Edge)**: Bấm vào biểu tượng Cài đặt trên thanh địa chỉ hoặc mở menu `⋯` ➔ chọn **"Cài đặt ứng dụng"**.
+- **Điện thoại Android**: Thông báo "Thêm vào Màn hình chính" xuất hiện tự động hoặc bấm nút tải trên thanh điều hướng.
+- **Điện thoại iPhone / iPad (Safari)**: Bấm nút **Chia sẻ (Share)** ở đáy Safari ➔ Chọn **"Thêm vào MH chính" (Add to Home Screen)**.
+
+---
+
+## 📄 Bản Quyền & Giấy Phép
+Dự án được phát hành dưới giấy phép mã nguồn mở ISC License.
+Phát triển vì cộng đồng người yêu ẩm thực Sài Gòn! 🍲✨
