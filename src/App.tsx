@@ -79,8 +79,15 @@ export const App: React.FC = () => {
     initAnalytics();
     initPwa();
 
-    // Init Firebase Cloud Sync
+    // Init Firebase Cloud Sync - Mặc định tự động kết nối Firebase Realtime Database
     initFirebase({
+      onDishesSync: (cloudDishes: Dish[]) => {
+        if (Array.isArray(cloudDishes) && cloudDishes.length > 0) {
+          const normalized = cloudDishes.map(normalizeDish) as Dish[];
+          setDishes(normalized);
+          saveDishesLocally(normalized);
+        }
+      },
       onDataChange: (cloudDishes: Dish[]) => {
         if (Array.isArray(cloudDishes) && cloudDishes.length > 0) {
           const normalized = cloudDishes.map(normalizeDish) as Dish[];
@@ -88,8 +95,26 @@ export const App: React.FC = () => {
           saveDishesLocally(normalized);
         }
       },
-      onStatusChange: (status: 'connected' | 'connecting' | 'local') => {
+      setDishes: (cloudDishes: Dish[]) => {
+        if (Array.isArray(cloudDishes) && cloudDishes.length > 0) {
+          const normalized = cloudDishes.map(normalizeDish) as Dish[];
+          setDishes(normalized);
+          saveDishesLocally(normalized);
+        }
+      },
+      getDishes: () => dishes,
+      onStatusChange: (status: 'connected' | 'connecting' | 'local' | 'offline') => {
         setCloudStatus(status === 'connected' ? 'connected' : status === 'connecting' ? 'connecting' : 'offline');
+        // Chỉ khi lỗi kết nối (offline hoặc local) thì mới tự apply localStorage
+        if (status === 'local' || status === 'offline') {
+          const localDishes = loadDishesFromLocal();
+          if (localDishes && localDishes.length > 0) {
+            setDishes(localDishes);
+          }
+        }
+      },
+      onAuthChange: ({ isAdmin: adminFlag }: { isAdmin: boolean }) => {
+        setIsAdmin(adminFlag);
       },
     });
 

@@ -67,6 +67,7 @@ export function isCurrentUserAdmin() {
  */
 export async function initFirebase({
   onDishesSync,
+  onDataChange,
   onAdminPinSync,
   onAuthChange,
   onStatusChange,
@@ -74,61 +75,64 @@ export async function initFirebase({
   setDishes,
   getCurrentPinHash,
   setCurrentPinHash
-}) {
+} = {}) {
   let configObj = null;
   const savedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
 
-  // Nếu người dùng chủ động tắt Cloud
+  // Xóa cờ DISABLED cũ nếu có để luôn ưu tiên tự động kết nối Cloud
   if (savedConfig === 'DISABLED') {
-    if (onStatusChange) onStatusChange('local', 'Đang dùng LocalStorage (Đã tắt Cloud)');
-    return;
+    localStorage.removeItem(FIREBASE_CONFIG_KEY);
+  }
+
+  if (savedConfig && savedConfig !== 'DISABLED') {
+    configObj = parseFirebaseConfig(savedConfig);
+  }
+
+  // 1. Kiểm tra cache cấu hình từ lần trước để kết nối tức thì (0ms)
+  const cachedApiConfig = localStorage.getItem(CACHED_API_CONFIG_KEY);
+  if (cachedApiConfig) {
+    try {
+      const parsed = JSON.parse(cachedApiConfig);
+      if (parsed && parsed.databaseURL && parsed.apiKey) {
+        configObj = parsed;
+        if (parsed.adminEmail) setAdminEmail(parsed.adminEmail);
+      }
+    } catch (e) { }
+  }
+
+  // 2. Nếu chưa có config (hoặc lần đầu vào web), tự động tải từ /api/config (đọc từ .env)
+  if (!configObj) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch('/api/config', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const apiConfig = await res.json();
+        if (apiConfig && apiConfig.databaseURL && apiConfig.apiKey) {
+          configObj = apiConfig;
+          localStorage.setItem(CACHED_API_CONFIG_KEY, JSON.stringify(apiConfig));
+          if (apiConfig.adminEmail) setAdminEmail(apiConfig.adminEmail);
+        }
+      }
+    } catch (err) {
+      console.warn("Không thể tải cấu hình Firebase từ /api/config:", err.message);
+    }
+  } else {
+    // Đã có cache: vẫn tải ngầm để cập nhật adminEmail hoặc env mới nhất
+    fetch('/api/config')
+      .then((res) => res.ok && res.json())
+      .then((apiConfig) => {
+        if (apiConfig && apiConfig.adminEmail) setAdminEmail(apiConfig.adminEmail);
+      })
+      .catch(() => {});
   }
 
   if (onStatusChange) onStatusChange('connecting', 'Đang kết nối Firebase Cloud...');
 
-  if (savedConfig) {
-    configObj = parseFirebaseConfig(savedConfig);
-  } else {
-    // Kiểm tra cache local trước để tránh gọi API Serverless Vercel liên tục
-    const cachedApiConfig = localStorage.getItem(CACHED_API_CONFIG_KEY);
-    if (cachedApiConfig) {
-      try {
-        const parsed = JSON.parse(cachedApiConfig);
-        if (parsed && parsed.databaseURL && parsed.apiKey) {
-          configObj = parsed;
-          if (parsed.adminEmail) setAdminEmail(parsed.adminEmail);
-        }
-      } catch (e) { }
-    }
-
-    if (!configObj) {
-      // Lấy cấu hình từ Vercel Environment Variables nếu có
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-        const res = await fetch('/api/config', { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (res.ok) {
-          const apiConfig = await res.json();
-          if (apiConfig && apiConfig.databaseURL && apiConfig.apiKey) {
-            configObj = apiConfig;
-            localStorage.setItem(CACHED_API_CONFIG_KEY, JSON.stringify(apiConfig));
-            if (apiConfig.adminEmail) setAdminEmail(apiConfig.adminEmail);
-          }
-        }
-      } catch (err) {
-        console.warn("Không thể tải /api/config:", err.message);
-      }
-    }
-
-    if (!configObj && typeof DEFAULT_FIREBASE_CONFIG === 'object' && DEFAULT_FIREBASE_CONFIG?.databaseURL) {
-      configObj = DEFAULT_FIREBASE_CONFIG;
-    }
-  }
-
-  // Nếu không có bất kỳ cấu hình Firebase nào
+  // Nếu không thể kết nối tới Firebase, tự động fallback sang LocalStorage
   if (!configObj || !configObj.databaseURL) {
-    if (onStatusChange) onStatusChange('local', 'Chưa có cấu hình Firebase, dùng LocalStorage');
+    if (onStatusChange) onStatusChange('local', 'Không thể kết nối Firebase, đang dùng LocalStorage');
     return;
   }
 
@@ -232,22 +236,25 @@ export async function initFirebase({
         loadedDishes = loadedDishes.map(normalizeDish);
 
         if (loadedDishes.length > 0) {
-          setDishes(loadedDishes);
+          if (typeof setDishes === 'function') setDishes(loadedDishes);
+          if (typeof onDishesSync === 'function') onDishesSync(loadedDishes);
+          if (typeof onDataChange === 'function') onDataChange(loadedDishes);
           saveDishesLocally(loadedDishes);
-          if (onDishesSync) onDishesSync(loadedDishes);
         }
       } else {
         // Cloud rỗng: đồng bộ danh sách hiện có lên Cloud
-        const current = getDishes();
-        saveDishesCloud(current);
+        const current = (typeof getDishes === 'function') ? getDishes() : [];
+        if (current && current.length > 0) {
+          saveDishesCloud(current);
+        }
       }
       isFirebaseConnected = true;
-      if (onStatusChange) onStatusChange('connected', 'Đã đồng bộ Firebase Realtime');
+      if (onStatusChange) onStatusChange('connected', 'Firebase Realtime Đang Hoạt Động 🔥');
     }, (error) => {
       clearTimeout(connectionTimeout);
       isFirebaseConnected = false;
       console.error("Firebase Realtime Error:", error);
-      if (onStatusChange) onStatusChange('local', 'Lỗi Cloud (' + (error.code || 'quá tải') + '), đang dùng LocalStorage');
+      if (onStatusChange) onStatusChange('local', 'Lỗi Cloud (' + (error.code || 'không thể kết nối') + '), đang dùng LocalStorage');
     });
 
     // 5. Đồng bộ mã PIN Admin
