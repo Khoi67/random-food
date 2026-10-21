@@ -66,6 +66,7 @@ export const App: React.FC = () => {
   // Modals state
   const [winnerDish, setWinnerDish] = useState<Dish | null>(null);
   const [selectedDishDetail, setSelectedDishDetail] = useState<Dish | null>(null);
+  const [spinTrigger, setSpinTrigger] = useState(0);
   const [reviewDish, setReviewDish] = useState<Dish | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -344,6 +345,7 @@ export const App: React.FC = () => {
               dishes={activeDishes}
               isFavoriteFn={checkIsFavorite}
               onWinner={handleWinner}
+              spinTrigger={spinTrigger}
             />
           </section>
 
@@ -375,6 +377,9 @@ export const App: React.FC = () => {
         onClose={() => setWinnerDish(null)}
         onSpinAgain={() => {
           setWinnerDish(null);
+          setTimeout(() => {
+            setSpinTrigger((prev) => prev + 1);
+          }, 200);
         }}
         onExcludeDish={(id) => {
           handleToggleExclude(id);

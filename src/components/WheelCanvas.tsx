@@ -8,6 +8,7 @@ interface WheelCanvasProps {
   isFavoriteFn: (id: string) => boolean;
   onSpinStart?: () => void;
   onWinner: (dish: Dish) => void;
+  spinTrigger?: number;
 }
 
 // 6 Warm, Harmonious, Delicious Food Colors
@@ -35,6 +36,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
   isFavoriteFn,
   onSpinStart,
   onWinner,
+  spinTrigger,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -287,6 +289,15 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
 
     animFrameIdRef.current = requestAnimationFrame(animate);
   };
+
+  // Listen to external spinTrigger (e.g. from "Quay lại món khác" button)
+  const prevSpinTriggerRef = useRef(spinTrigger || 0);
+  useEffect(() => {
+    if (spinTrigger && spinTrigger > prevSpinTriggerRef.current) {
+      prevSpinTriggerRef.current = spinTrigger;
+      spin();
+    }
+  }, [spinTrigger]);
 
   return (
     <div className="flex flex-col items-center justify-center relative select-none w-full">
