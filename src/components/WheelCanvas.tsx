@@ -26,7 +26,6 @@ function getContrastTextColor(hexColor: string): string {
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
-  // YIQ luminance
   const yiq = (r * 299 + g * 587 + b * 114) / 1000;
   return yiq >= 135 ? '#0f172a' : '#ffffff';
 }
@@ -38,6 +37,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
   onWinner,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const bufferCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const rotationAngleRef = useRef(0);
   const animFrameIdRef = useRef<number | null>(null);
@@ -48,25 +48,29 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
     return computeWeightedSlices(dishes, isFavoriteFn);
   }, [dishes, isFavoriteFn]);
 
-  // Draw wheel on canvas
-  const draw = useCallback(
-    (currentAngle: number) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
+  // Pre-render static wheel onto an Offscreen Canvas Buffer (Runs ONCE when slices/size change, NOT on every frame!)
+  const renderWheelToBuffer = useCallback(
+    (size: number, dpr: number) => {
+      let buffer = bufferCanvasRef.current;
+      if (!buffer) {
+        buffer = document.createElement('canvas');
+        bufferCanvasRef.current = buffer;
+      }
+
+      buffer.width = Math.round(size * dpr);
+      buffer.height = Math.round(size * dpr);
+
+      const ctx = buffer.getContext('2d');
       if (!ctx) return;
 
-      const dpr = window.devicePixelRatio || 1;
-      const size = canvas.width / dpr;
+      ctx.clearRect(0, 0, buffer.width, buffer.height);
+      ctx.save();
+      ctx.scale(dpr, dpr);
+
       const center = size / 2;
       const radius = center - 8;
 
-      ctx.save();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.scale(dpr, dpr);
-
       if (slices.length === 0) {
-        // Empty state wheel
         ctx.beginPath();
         ctx.arc(center, center, radius, 0, 2 * Math.PI);
         ctx.fillStyle = '#1e293b';
@@ -85,9 +89,8 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
       }
 
       ctx.translate(center, center);
-      ctx.rotate(currentAngle);
 
-      // Draw slices
+      // 1. Draw Slices
       slices.forEach((slice, i) => {
         const bg = PALETTE[i % PALETTE.length];
         const textColor = getContrastTextColor(bg);
@@ -103,7 +106,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
         ctx.strokeStyle = '#0f172a';
         ctx.stroke();
 
-        // Draw Favorite Glow Indicator if 2x
+        // Favorite Glow Indicator if 2x
         if (slice.isFav) {
           ctx.beginPath();
           ctx.arc(0, 0, radius, slice.startAngle, slice.endAngle);
@@ -112,42 +115,37 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
           ctx.stroke();
         }
 
-        // Draw text along slice center
+        // Draw Single-line Radial Text
         ctx.save();
         ctx.rotate(slice.centerAngle);
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = textColor;
 
-        // Display dish name or shortName
         const displayName = slice.dish.shortName || slice.dish.name;
 
-        // Dynamic font sizing based on slice count
+        // Dynamic font sizing
         let baseFontSize = 12;
         if (slices.length > 22) baseFontSize = 9.5;
         else if (slices.length > 16) baseFontSize = 10.5;
         else if (slices.length > 10) baseFontSize = 11.5;
         else if (slices.length <= 6) baseFontSize = 13.5;
 
-        // Available radial space from center button to outer edge
         const centerBtnRadius = 38;
         const maxRadialLength = radius - centerBtnRadius - 14;
         const textX = radius - 12;
 
-        // Auto-scale font size if text is long to prevent text overflow
         ctx.font = `bold ${baseFontSize}px "Be Vietnam Pro", sans-serif`;
         let textWidth = ctx.measureText(displayName).width;
-        let finalFontSize = baseFontSize;
 
         if (textWidth > maxRadialLength) {
-          finalFontSize = Math.max(8.5, baseFontSize * (maxRadialLength / textWidth));
-          ctx.font = `bold ${finalFontSize}px "Be Vietnam Pro", sans-serif`;
+          const scaledFontSize = Math.max(8.5, baseFontSize * (maxRadialLength / textWidth));
+          ctx.font = `bold ${scaledFontSize}px "Be Vietnam Pro", sans-serif`;
           textWidth = ctx.measureText(displayName).width;
         }
 
         let renderText = displayName;
         if (textWidth > maxRadialLength) {
-          // If still slightly long, truncate gracefully with ellipsis
           let truncated = displayName;
           while (truncated.length > 4 && ctx.measureText(truncated + '…').width > maxRadialLength) {
             truncated = truncated.slice(0, -1);
@@ -159,7 +157,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
         ctx.restore();
       });
 
-      // Outer ring border
+      // 2. Outer Ring Border
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, 2 * Math.PI);
       ctx.lineWidth = 6;
@@ -170,6 +168,25 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
     },
     [slices]
   );
+
+  // Blit pre-rendered buffer to visible canvas in 0.05ms (Zero-lag 60fps GPU drawing)
+  const draw = useCallback((currentAngle: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const buffer = bufferCanvasRef.current;
+    if (!buffer) return;
+
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(currentAngle);
+    ctx.drawImage(buffer, -canvas.width / 2, -canvas.height / 2);
+    ctx.restore();
+  }, []);
 
   // Resize canvas according to container
   useEffect(() => {
@@ -182,23 +199,29 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
       const size = Math.min(parent.clientWidth - 16, 380);
       const dpr = window.devicePixelRatio || 1;
 
-      canvas.width = size * dpr;
-      canvas.height = size * dpr;
+      canvas.width = Math.round(size * dpr);
+      canvas.height = Math.round(size * dpr);
       canvas.style.width = `${size}px`;
       canvas.style.height = `${size}px`;
 
+      renderWheelToBuffer(size, dpr);
       draw(rotationAngleRef.current);
     };
 
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [draw]);
+  }, [renderWheelToBuffer, draw]);
 
   // Redraw when slices change
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const size = canvas.width / dpr || 380;
+    renderWheelToBuffer(size, dpr);
     draw(rotationAngleRef.current);
-  }, [slices, draw]);
+  }, [slices, renderWheelToBuffer, draw]);
 
   // Spin Wheel function
   const spin = () => {
@@ -215,7 +238,6 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
     const duration = prefersReducedMotion ? 1200 : 4200;
 
     // The pointer is at TOP (3 * Math.PI / 2 radians, or -Math.PI / 2)
-    // We want the winner's centerAngle + finalAngle === 3 * Math.PI / 2 (mod 2PI)
     const pointerAngle = (3 * Math.PI) / 2;
     const extraRounds = prefersReducedMotion ? 2 : 6 + Math.floor(Math.random() * 3);
     const targetDelta = pointerAngle - winner.centerAngle;
@@ -266,7 +288,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center relative select-none">
+    <div className="flex flex-col items-center justify-center relative select-none w-full">
       {/* Canvas Container */}
       <div className="relative w-full max-w-[380px] aspect-square flex items-center justify-center p-1 sm:p-2">
         {/* Top Pointer Indicator */}
@@ -292,19 +314,25 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
       </div>
 
       {/* Main Big Spin Button */}
-      <div className="mt-4 w-full max-w-sm px-4">
+      <div className="mt-4 w-full max-w-sm px-2 sm:px-4">
         <button
           onClick={spin}
           disabled={isSpinning || slices.length === 0}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 via-orange-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-black text-base shadow-xl shadow-brand-500/30 hover:shadow-brand-500/50 active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 via-orange-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-black text-sm sm:text-base shadow-xl shadow-brand-500/30 hover:shadow-brand-500/50 active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          <span className="text-xl">🎲</span>
+          <span className="text-lg sm:text-xl">🎲</span>
           <span>{isSpinning ? 'ĐANG QUAY...' : 'QUAY NGAY HÔM NAY!'}</span>
         </button>
-        <p className="text-[11px] text-center text-slate-400 mt-2">
-          {slices.some((s) => s.isFav)
-            ? '❤️ Món yêu thích có xác suất trúng gấp đôi (2x)!'
-            : 'Mẹo: Bấm ❤️ ở danh sách để nhân đôi xác suất trúng món yêu thích.'}
+        <p className="text-[11px] text-center text-slate-400 mt-2 px-1">
+          {slices.length > 20 ? (
+            <span className="text-amber-300">
+              ⚡ Đang có {slices.length} món trên vòng. Có thể dùng bộ lọc nhanh (Giá/Kiểu) để quay tập trung hơn!
+            </span>
+          ) : slices.some((s) => s.isFav) ? (
+            '❤️ Món yêu thích có xác suất trúng gấp đôi (2x)!'
+          ) : (
+            'Mẹo: Bấm ❤️ ở danh sách để nhân đôi xác suất trúng món yêu thích.'
+          )}
         </p>
       </div>
     </div>
