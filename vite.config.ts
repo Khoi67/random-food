@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
                 measurementId: env.FIREBASE_MEASUREMENT_ID || '',
                 adminEmail: env.ADMIN_EMAIL || '',
                 recaptchaSiteKey: env.RECAPTCHA_SITE_KEY || '',
+                recaptchaType: env.RECAPTCHA_TYPE || 'v3',
               };
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify(config));

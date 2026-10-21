@@ -10,7 +10,8 @@ export default function handler(req, res) {
     appId: process.env.FIREBASE_APP_ID || "",
     measurementId: process.env.FIREBASE_MEASUREMENT_ID || "",
     adminEmail: process.env.ADMIN_EMAIL || "",
-    recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY || ""
+    recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY || "",
+    recaptchaType: process.env.RECAPTCHA_TYPE || "v3"
   };
 
   // Cache tại Vercel Edge CDN trong 24 giờ, giảm tối đa số lượt gọi Serverless

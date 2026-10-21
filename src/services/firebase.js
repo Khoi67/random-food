@@ -123,7 +123,10 @@ export async function initFirebase({
     fetch('/api/config')
       .then((res) => res.ok && res.json())
       .then((apiConfig) => {
-        if (apiConfig && apiConfig.adminEmail) setAdminEmail(apiConfig.adminEmail);
+        if (apiConfig) {
+          if (apiConfig.adminEmail) setAdminEmail(apiConfig.adminEmail);
+          localStorage.setItem(CACHED_API_CONFIG_KEY, JSON.stringify(apiConfig));
+        }
       })
       .catch(() => {});
   }
@@ -168,34 +171,25 @@ export async function initFirebase({
       console.warn("Lỗi tải REST ban đầu:", e.message);
     }
 
-    // 1. Cấu hình App Check (Fraud Defense / reCAPTCHA Enterprise hoặc reCAPTCHA v3) nếu có Site Key
+    // 1. Cấu hình App Check (reCAPTCHA v3 hoặc reCAPTCHA Enterprise) nếu có Site Key
     const siteKey = configObj.recaptchaSiteKey || localStorage.getItem(RECAPTCHA_KEY);
-    if (siteKey && typeof window !== 'undefined') {
+    if (!appCheck && siteKey && typeof window !== 'undefined') {
       try {
         // Hỗ trợ chế độ debug khi chạy ở localhost để không bị chặn token
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
           self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
         }
 
-        let provider;
-        try {
-          // Thử khởi tạo với Fraud Defense / reCAPTCHA Enterprise trước (chuẩn mới của Google Cloud)
-          provider = new ReCaptchaEnterpriseProvider(siteKey);
-          appCheck = initializeAppCheck(firebaseApp, {
-            provider,
-            isTokenAutoRefreshEnabled: true
-          });
-          console.log("Firebase App Check đã kích hoạt thành công (reCAPTCHA Enterprise / Fraud Defense)!");
-        } catch (entErr) {
-          // Fallback sang reCAPTCHA v3 nếu key thuộc dạng v3 classic
-          console.log("Thử khởi tạo App Check với reCAPTCHA v3 provider...");
-          provider = new ReCaptchaV3Provider(siteKey);
-          appCheck = initializeAppCheck(firebaseApp, {
-            provider,
-            isTokenAutoRefreshEnabled: true
-          });
-          console.log("Firebase App Check đã kích hoạt thành công (reCAPTCHA v3)!");
-        }
+        const isEnterprise = configObj.recaptchaType === 'enterprise';
+        const provider = isEnterprise
+          ? new ReCaptchaEnterpriseProvider(siteKey)
+          : new ReCaptchaV3Provider(siteKey);
+
+        appCheck = initializeAppCheck(firebaseApp, {
+          provider,
+          isTokenAutoRefreshEnabled: true
+        });
+        console.log(`Firebase App Check đã kích hoạt (${isEnterprise ? 'reCAPTCHA Enterprise' : 'reCAPTCHA v3'})!`);
       } catch (err) {
         console.warn("Lỗi khởi tạo App Check:", err.message);
       }
