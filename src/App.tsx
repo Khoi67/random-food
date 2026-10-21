@@ -37,7 +37,6 @@ import { HistoryModal } from './components/HistoryModal';
 import { ReviewModal } from './components/ReviewModal';
 import { AdminModal } from './components/AdminModal';
 import { FirebaseModal } from './components/FirebaseModal';
-import { PwaModals } from './components/PwaModals';
 
 export const App: React.FC = () => {
   // Dishes state
@@ -69,7 +68,6 @@ export const App: React.FC = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isFirebaseOpen, setIsFirebaseOpen] = useState(false);
-  const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
 
   // Status state
   const [isAdmin, setIsAdmin] = useState(false);
@@ -278,7 +276,6 @@ export const App: React.FC = () => {
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenCloud={() => setIsFirebaseOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
-        onOpenPwa={() => setIsPwaModalOpen(true)}
         onRestoreDefaults={handleRestoreDefaults}
         historyCount={historyCount}
         cloudStatus={cloudStatus}
@@ -400,12 +397,6 @@ export const App: React.FC = () => {
             },
           });
         }}
-      />
-
-      {/* 7. PWA Installation Modal & Banner */}
-      <PwaModals
-        isModalOpen={isPwaModalOpen}
-        onCloseModal={() => setIsPwaModalOpen(false)}
       />
     </div>
   );

@@ -3,7 +3,6 @@ import { Dish, LocationItem } from '../types/index.js';
 import confetti from 'canvas-confetti';
 import {
   X,
-  Share2,
   RotateCcw,
   Ban,
   MapPin,
@@ -20,7 +19,7 @@ import {
   formatDistance,
 } from '../services/geolocation.js';
 import { showToast } from '../utils/helpers.js';
-import { trackShare, trackSpinAgain, trackOpenMaps } from '../services/analytics.js';
+import { trackSpinAgain, trackOpenMaps } from '../services/analytics.js';
 
 interface ResultModalProps {
   dish: Dish | null;
@@ -106,37 +105,6 @@ export const ResultModal: React.FC<ResultModalProps> = ({
       );
     } finally {
       setIsLocating(false);
-    }
-  };
-
-  // Handle Web Share or Copy Link
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/?m=${dish.id}`;
-    const shareTitle = `Hôm nay ăn "${dish.name}" ở Sài Gòn nha! 🍜`;
-    const shareText = `Vũ trụ vừa chọn cho mình món ${dish.name}. Xem ngay địa chỉ quán ngon tại TP.HCM:`;
-
-    trackShare(dish.id, dish.name);
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: shareUrl,
-        });
-        showToast('Chia sẻ thành công! 🎉', 'success');
-        return;
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
-      }
-    }
-
-    // Fallback copy to clipboard
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      showToast('Đã sao chép link chia sẻ vào clipboard! 📋', 'success');
-    } catch (e) {
-      showToast(`Link chia sẻ: ${shareUrl}`, 'info');
     }
   };
 
@@ -281,23 +249,14 @@ export const ResultModal: React.FC<ResultModalProps> = ({
         {/* Action Buttons Footer */}
         <div className="pt-4 border-t border-slate-800/80 space-y-2 mt-2">
           {/* Main Action Buttons */}
-          <div className="grid grid-cols-2 gap-2">
-            {/* Share Result */}
-            <button
-              onClick={handleShare}
-              className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95"
-            >
-              <Share2 className="w-4 h-4 text-brand-400" />
-              <span>Chia sẻ món này</span>
-            </button>
-
+          <div>
             {/* Spin Again */}
             <button
               onClick={() => {
                 trackSpinAgain();
                 onSpinAgain();
               }}
-              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-brand-500/20 transition cursor-pointer active:scale-95"
+              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 transition cursor-pointer active:scale-95"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Quay lại món khác</span>

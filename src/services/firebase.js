@@ -297,9 +297,18 @@ export async function signInAdminGoogle() {
     const isMatched = isCurrentUserAdmin();
 
     if (isMatched) {
+      setAdminEmail(currentUser.email);
       showToast(`Đăng nhập Google Admin thành công: ${currentUser.email} 👑`, "success");
+      // Tự động đồng bộ email admin lên Firebase Realtime Database nếu có kết nối
+      if (firebaseDb) {
+        try {
+          const adminEmailRef = ref(firebaseDb, "admin_config/adminEmail");
+          set(adminEmailRef, currentUser.email).catch(() => {});
+        } catch (_) {}
+      }
     } else {
-      showToast(`Đã đăng nhập (${currentUser.email}). Chú ý: Email không khớp với ADMIN_EMAIL (${adminEmail || 'chưa đặt'}).`, "warning");
+      const configured = adminEmail || 'chưa đặt trong .env';
+      showToast(`Đã đăng nhập (${currentUser.email}). Chú ý: Email không khớp với ADMIN_EMAIL (${configured}).`, "warning");
     }
     return { user: currentUser, isAdmin: isMatched };
   } catch (err) {
@@ -333,19 +342,21 @@ export function saveDishesCloud(dishes) {
   if (isFirebaseConnected && firebaseDb) {
     try {
       const dishesRef = ref(firebaseDb, "shared_dishes");
-      set(dishesRef, dishes).catch(err => {
+      return set(dishesRef, dishes).catch(err => {
         console.error("Lỗi đẩy lên Firebase:", err);
         const errMsg = err?.message || '';
         if (errMsg.includes('PERMISSION_DENIED') || err?.code === 'PERMISSION_DENIED') {
-          showToast("Firebase từ chối quyền ghi (Permission Denied). Hãy cập nhật Rules!", "error");
+          showToast("Firebase từ chối quyền ghi (Permission Denied). Hãy cập nhật Rules trong Firebase Console!", "error");
         } else {
           showToast("Lỗi kết nối Cloud, dữ liệu đã được lưu an toàn trên máy bạn", "warning");
         }
+        throw err;
       });
     } catch (e) {
       console.error("Lỗi gọi Firebase set:", e);
     }
   }
+  return Promise.resolve();
 }
 
 /**

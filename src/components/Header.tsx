@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, MoreVertical, History, Cloud, ShieldCheck, Download, RefreshCw, Clock } from 'lucide-react';
+import { Volume2, VolumeX, MoreVertical, History, Cloud, ShieldCheck, RefreshCw, Clock } from 'lucide-react';
 import { isSoundEnabled, setSoundEnabled } from '../utils/audio.js';
 
 interface HeaderProps {
   onOpenHistory: () => void;
   onOpenCloud: () => void;
   onOpenAdmin: () => void;
-  onOpenPwa: () => void;
   onRestoreDefaults: () => void;
   historyCount: number;
   cloudStatus: 'connected' | 'connecting' | 'offline';
@@ -17,7 +16,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenHistory,
   onOpenCloud,
   onOpenAdmin,
-  onOpenPwa,
   onRestoreDefaults,
   historyCount,
   cloudStatus,
@@ -177,17 +175,6 @@ export const Header: React.FC<HeaderProps> = ({
                     <span className="text-[10px] text-slate-400 font-mono">
                       {isAdmin ? 'Đã mở 🔓' : 'Khách 🔒'}
                     </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onOpenPwa();
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition cursor-pointer"
-                  >
-                    <Download className="w-4 h-4 text-purple-400" />
-                    Cài đặt ứng dụng (PWA)
                   </button>
 
                   <div className="my-1 border-t border-slate-800" />
