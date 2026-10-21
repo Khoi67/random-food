@@ -281,10 +281,12 @@ export async function initFirebase({
           saveDishesLocally(loadedDishes);
         }
       } else {
-        // Cloud rỗng: đồng bộ danh sách hiện có lên Cloud
-        const current = (typeof getDishes === 'function') ? getDishes() : [];
-        if (current && current.length > 0) {
-          saveDishesCloud(current);
+        // Cloud chưa có dữ liệu: chỉ tự động đẩy dữ liệu mẫu lên nếu là Admin đã đăng nhập
+        if (isAdminUser) {
+          const current = (typeof getDishes === 'function') ? getDishes() : [];
+          if (current && current.length > 0) {
+            saveDishesCloud(current);
+          }
         }
       }
       isFirebaseConnected = true;
@@ -350,17 +352,63 @@ export async function signOutAdminGoogle() {
 }
 
 /**
- * Đẩy toàn bộ dữ liệu món ăn lên Cloud (Dành cho Admin hoặc đồng bộ)
+ * Thêm một món ăn mới lên Cloud (Khách hoặc Admin đều được phép theo rule $dishId: !data.exists())
+ */
+export async function addDishCloud(dish) {
+  if (isFirebaseConnected && firebaseDb && dish && dish.id) {
+    try {
+      const dishRef = ref(firebaseDb, `shared_dishes/${dish.id}`);
+      await set(dishRef, dish);
+      return true;
+    } catch (err) {
+      console.warn("Lỗi thêm món lên Cloud:", err);
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Xóa một món ăn trên Cloud (Chỉ Admin mới có quyền theo rule $dishId)
+ */
+export async function deleteDishCloud(dishId) {
+  if (isFirebaseConnected && firebaseDb && dishId) {
+    try {
+      const dishRef = ref(firebaseDb, `shared_dishes/${dishId}`);
+      await remove(dishRef);
+      return true;
+    } catch (err) {
+      console.error("Lỗi xóa món trên Cloud:", err);
+      showToast("Chỉ Quản trị viên mới có quyền xóa món khỏi hệ thống!", "error");
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Đẩy toàn bộ dữ liệu món ăn lên Cloud (Dành riêng cho Admin khôi phục thực đơn gốc)
  */
 export function saveDishesCloud(dishes) {
   if (isFirebaseConnected && firebaseDb) {
     try {
+      // Lưu dưới dạng object { [id]: dish } để khớp hoàn hảo với cấu trúc $dishId trong Firebase
+      let dishesData = dishes;
+      if (Array.isArray(dishes)) {
+        dishesData = {};
+        dishes.forEach((d) => {
+          if (d && d.id) {
+            dishesData[d.id] = d;
+          }
+        });
+      }
+
       const dishesRef = ref(firebaseDb, "shared_dishes");
-      return set(dishesRef, dishes).catch(err => {
+      return set(dishesRef, dishesData).catch(err => {
         console.error("Lỗi đẩy lên Firebase:", err);
         const errMsg = err?.message || '';
         if (errMsg.includes('PERMISSION_DENIED') || err?.code === 'PERMISSION_DENIED') {
-          showToast("Firebase từ chối quyền ghi (Permission Denied). Hãy cập nhật Rules trong Firebase Console!", "error");
+          showToast("Firebase từ chối quyền ghi: Hãy đăng nhập tài khoản Google Admin trước khi khôi phục thực đơn!", "error");
         } else {
           showToast("Lỗi kết nối Cloud, dữ liệu đã được lưu an toàn trên máy bạn", "warning");
         }

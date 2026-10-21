@@ -9,6 +9,8 @@ import {
 import {
   initFirebase,
   saveDishesCloud,
+  addDishCloud,
+  deleteDishCloud,
   getCurrentUser,
   isCurrentUserAdmin,
 } from './services/firebase.js';
@@ -235,7 +237,9 @@ export const App: React.FC = () => {
   // Add Dish
   const handleAddDish = (newDish: Dish) => {
     const updated = [newDish, ...dishes];
-    persistDishes(updated);
+    setDishes(updated);
+    saveDishesLocally(updated);
+    addDishCloud(newDish);
   };
 
   // Delete Dish (Admin)
@@ -246,16 +250,24 @@ export const App: React.FC = () => {
     }
     if (window.confirm(`Bạn có chắc chắn muốn xóa "${dish.name}" không?`)) {
       const updated = dishes.filter((d) => d.id !== dish.id);
-      persistDishes(updated);
+      setDishes(updated);
+      saveDishesLocally(updated);
+      deleteDishCloud(dish.id);
       showToast(`Đã xóa món "${dish.name}".`, 'info');
     }
   };
 
-  // Restore Default Dishes
+  // Restore Default Dishes (Admin)
   const handleRestoreDefaults = () => {
+    if (!isAdmin) {
+      showToast('Chỉ Quản trị viên mới có quyền khôi phục dữ liệu gốc!', 'warning');
+      return;
+    }
     if (window.confirm('Khôi phục toàn bộ thực đơn chuẩn gốc TP.HCM? Mọi món tự thêm sẽ được thay thế.')) {
       const defaults = DEFAULT_DISHES_HCM.map(normalizeDish);
-      persistDishes(defaults);
+      setDishes(defaults);
+      saveDishesLocally(defaults);
+      saveDishesCloud(defaults);
       setExcludedDishIds(new Set());
       showToast('Đã khôi phục thực đơn gốc TP.HCM thành công! 🍜', 'success');
     }
