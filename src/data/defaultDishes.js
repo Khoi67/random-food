@@ -292,5 +292,35 @@ export const DEFAULT_DISHES_HCM = [
           { name: 'Chè Mâm Khánh Vy', address: '242B Sư Vạn Hạnh, Phường 2, Quận 10' },
           { name: 'Chè Tường Phong', address: '83 An Điềm, Phường 10, Quận 5' }
         ]
+      },
+      {
+        id: 'hcm-chay-1',
+        name: 'Cơm Chay & Hủ Tiếu Chay',
+        mealTypes: ['sang', 'trua', 'toi'],
+        priceRange: 'under50',
+        type: 'nuoc',
+        vegetarian: true,
+        tags: ['chay', 'món nước', 'thanh đạm'],
+        locations: [
+          { name: 'Cơm Chay Giác Ngộ', address: '213 Hùng Vương, Phường 9, Quận 5' },
+          { name: 'Hủ Tiếu Chay Cây Bồ Đề', address: '360D Bến Vân Đồn, Phường 1, Quận 4' },
+          { name: 'Ẩm Thực Chay Mani', address: '291/2 Võ Văn Tần, Phường 5, Quận 3' },
+          { name: 'Quán Chay Pháp Hoa', address: '219 Thích Quảng Đức, Phường 4, Phú Nhuận' }
+        ]
+      },
+      {
+        id: 'hcm-chay-2',
+        name: 'Lẩu Nấm & Đậu Hũ Chay',
+        mealTypes: ['trua', 'toi'],
+        priceRange: '50to100',
+        type: 'nuoc',
+        vegetarian: true,
+        tags: ['chay', 'lẩu', 'thanh tịnh'],
+        locations: [
+          { name: 'Lẩu Nấm Chay An Nhiên', address: '81-83 Phạm Ngũ Lão, Phường 3, Gò Vấp' },
+          { name: 'Nhà Hàng Chay Rôu', address: '37B Cô Bắc, Cầu Ông Lãnh, Quận 1' },
+          { name: 'Chay Mandala', address: '110 Sương Nguyệt Ánh, Bến Thành, Quận 1' }
+        ]
       }
 ];
+

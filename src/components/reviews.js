@@ -1,6 +1,7 @@
 import { SAMPLE_LOCATION_REVIEWS_HCM } from '../data/sampleReviews.js';
 import { escapeHtml, showToast } from '../utils/helpers.js';
 import { REVIEW_COOLDOWN_MS, MAX_REVIEWS_PER_DISH } from '../utils/constants.js';
+import { getCurrentUser } from '../services/firebase.js';
 
 let currentReviewDish = null;
 let currentReviewLocationIndex = null;
@@ -9,10 +10,12 @@ let lastReviewSubmitTimestamp = 0;
 
 let saveDishesCallback = null;
 let updateMealTabsCallback = null;
+let reportCallback = null;
 
-export function initReviewsSystem({ onSaveDishes, onUpdateTabs }) {
+export function initReviewsSystem({ onSaveDishes, onUpdateTabs, onReport }) {
   saveDishesCallback = onSaveDishes;
   updateMealTabsCallback = onUpdateTabs;
+  reportCallback = onReport;
   setupStarRatingSelector();
 
   const addReviewForm = document.getElementById('addReviewForm');
@@ -33,57 +36,65 @@ export function initReviewsSystem({ onSaveDishes, onUpdateTabs }) {
   }
 }
 
+/**
+ * Chuẩn hóa reviews thành mảng (hỗ trợ cả Array cũ lẫn Object theo UID)
+ */
+function normalizeReviews(rawReviews) {
+  if (!rawReviews) return [];
+  if (Array.isArray(rawReviews)) return rawReviews.filter(Boolean);
+  if (typeof rawReviews === 'object') {
+    return Object.entries(rawReviews).map(([uid, r]) => ({
+      uid,
+      id: r.id || `rev-${uid}`,
+      ...r
+    }));
+  }
+  return [];
+}
+
 export function getLocationReviews(loc, dish) {
-  if (loc && Array.isArray(loc.reviews) && loc.reviews.length > 0) {
-    return loc.reviews;
+  if (loc && loc.reviews) {
+    const list = normalizeReviews(loc.reviews);
+    if (list.length > 0) return list;
   }
   if (loc && SAMPLE_LOCATION_REVIEWS_HCM[loc.name]) {
     return SAMPLE_LOCATION_REVIEWS_HCM[loc.name];
   }
-  return [
-    {
-      author: 'Thực khách Sài Gòn',
-      rating: 5,
-      time: 'Gợi ý nổi bật',
-      comment: `Địa chỉ quán ngon được yêu thích cho món ${dish?.name || 'này'}. Hãy ghé thử và để lại review của bạn nhé!`
-    }
-  ];
+  return [];
 }
 
 export function getLocationRatingSummary(loc, dish) {
   const reviews = getLocationReviews(loc, dish);
   if (!reviews || reviews.length === 0) {
-    return { average: 5.0, count: 0, starsText: '5.0' };
+    return { average: 0, count: 0, starsText: 'Chưa có đánh giá', hasReviews: false };
   }
   const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
   const avg = (sum / reviews.length).toFixed(1);
-  return { average: Number(avg), count: reviews.length, starsText: avg };
+  return { average: Number(avg), count: reviews.length, starsText: avg, hasReviews: true };
 }
 
 export function getDishReviews(dish) {
   if (!dish) return [];
   const allReviews = [];
-  if (Array.isArray(dish.reviews)) {
-    allReviews.push(...dish.reviews);
+  if (dish.reviews) {
+    allReviews.push(...normalizeReviews(dish.reviews));
   }
   if (Array.isArray(dish.locations)) {
     dish.locations.forEach(loc => {
       allReviews.push(...getLocationReviews(loc, dish));
     });
   }
-  return allReviews.length > 0 ? allReviews : [
-    { author: 'Thực khách Sài Gòn', rating: 5, time: 'Mới nhất', comment: 'Món ăn đặc sắc TP.HCM! Hãy là người đầu tiên chia sẻ cảm nhận.' }
-  ];
+  return allReviews;
 }
 
 export function getDishRatingSummary(dish) {
   const reviews = getDishReviews(dish);
   if (!reviews || reviews.length === 0) {
-    return { average: 5.0, count: 0, starsText: '5.0' };
+    return { average: 0, count: 0, starsText: 'Chưa có đánh giá', hasReviews: false };
   }
   const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
   const avg = (sum / reviews.length).toFixed(1);
-  return { average: Number(avg), count: reviews.length, starsText: avg };
+  return { average: Number(avg), count: reviews.length, starsText: avg, hasReviews: true };
 }
 
 export function showReviewModal(dish, locationIndex = null) {
@@ -207,8 +218,12 @@ export function updateReviewModalContent() {
     currentReviews = getDishReviews(dish);
   }
 
-  if (reviewModalAvgScore) reviewModalAvgScore.textContent = summary.starsText;
-  if (reviewModalTotalCount) reviewModalTotalCount.textContent = `${summary.count} đánh giá`;
+  if (reviewModalAvgScore) {
+    reviewModalAvgScore.textContent = summary.hasReviews ? summary.starsText : "Chưa có";
+  }
+  if (reviewModalTotalCount) {
+    reviewModalTotalCount.textContent = summary.hasReviews ? `${summary.count} đánh giá` : "Chưa có đánh giá";
+  }
 
   // 3. Render danh sách review
   if (reviewModalList) {
@@ -217,13 +232,14 @@ export function updateReviewModalContent() {
       if (emptyReviewState) emptyReviewState.classList.remove('hidden');
     } else {
       if (emptyReviewState) emptyReviewState.classList.add('hidden');
-      currentReviews.forEach(rev => {
+      currentReviews.forEach((rev, rIdx) => {
         const item = document.createElement('div');
-        item.className = 'p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-xs space-y-1.5 transition hover:bg-slate-800';
+        item.className = 'p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-xs space-y-1.5 transition hover:bg-slate-800 relative group';
 
-        const ratingNum = Math.min(5, Math.max(1, Number(rev.rating) || 5));
+        const ratingNum = Math.min(5, Math.max(1, Math.round(Number(rev.rating) || 5)));
         const starString = '★'.repeat(ratingNum) + '☆'.repeat(Math.max(0, 5 - ratingNum));
         const authorInitial = (rev.author || 'T').charAt(0).toUpperCase();
+        const reviewIdentifier = rev.id || rev.uid || `rev-${rIdx}`;
 
         item.innerHTML = `
           <div class="flex items-center justify-between">
@@ -233,7 +249,7 @@ export function updateReviewModalContent() {
               </div>
               <span class="font-bold text-slate-200 truncate max-w-[150px] sm:max-w-[200px]">${escapeHtml(rev.author || 'Thực khách Sài Gòn')}</span>
             </div>
-            <div class="flex items-center space-x-1 flex-shrink-0">
+            <div class="flex items-center space-x-1.5 flex-shrink-0">
               <span class="text-amber-400 font-bold tracking-wider">${starString}</span>
               <span class="text-[10px] text-slate-400 font-normal">(${ratingNum}/5)</span>
             </div>
@@ -241,10 +257,29 @@ export function updateReviewModalContent() {
           <p class="text-slate-300 leading-relaxed pl-8">
             ${escapeHtml(rev.comment)}
           </p>
-          <div class="text-[10px] text-slate-400 text-right pr-1">
-            ${escapeHtml(rev.time || 'Vừa xong')}
+          <div class="flex items-center justify-between pl-8 pt-1 text-[10px] text-slate-400">
+            <span>${escapeHtml(rev.time || 'Vừa xong')}</span>
+            <button type="button" class="report-review-btn opacity-60 hover:opacity-100 hover:text-rose-400 transition flex items-center gap-0.5 cursor-pointer" data-rev-id="${reviewIdentifier}" data-rev-author="${escapeHtml(rev.author || '')}">
+              <span>🚩</span>
+              <span>Báo cáo</span>
+            </button>
           </div>
         `;
+
+        // Gắn sự kiện Báo cáo review
+        const reportBtn = item.querySelector('.report-review-btn');
+        if (reportBtn) {
+          reportBtn.addEventListener('click', () => {
+            if (reportCallback) {
+              reportCallback({
+                targetType: 'review',
+                targetId: reviewIdentifier,
+                targetName: `Đánh giá của ${rev.author || 'Thực khách'}`
+              });
+            }
+          });
+        }
+
         reviewModalList.appendChild(item);
       });
     }
@@ -267,7 +302,7 @@ function handleReviewSubmit(e) {
 
   const author = (reviewAuthorInput ? reviewAuthorInput.value.trim() : '') || 'Thực khách Sài Gòn';
   const comment = reviewCommentInput ? reviewCommentInput.value.trim() : '';
-  const rating = selectedStarRating || 5;
+  const rating = Math.min(5, Math.max(1, Math.round(Number(selectedStarRating) || 5)));
 
   if (!comment) {
     showToast("Vui lòng nhập cảm nhận hoặc gợi ý của bạn!", "error");
@@ -275,38 +310,58 @@ function handleReviewSubmit(e) {
     return;
   }
 
-  if (comment.length > 200) {
-    showToast("Cảm nhận tối đa 200 ký tự!", "warning");
+  // Tiêu chí bảo mật: nội dung review tối đa 500 ký tự
+  if (comment.length > 500) {
+    showToast("Nội dung đánh giá tối đa 500 ký tự!", "warning");
     return;
   }
 
-  const newReview = {
-    id: 'rev-' + Date.now(),
-    author: author,
+  const user = getCurrentUser();
+  const userUid = user?.uid || ('user-' + Date.now());
+
+  const reviewData = {
+    uid: userUid,
+    id: 'rev-' + userUid,
+    author: author.slice(0, 40),
     rating: rating,
-    comment: comment,
+    comment: comment.slice(0, 500),
     time: 'Vừa xong',
     createdAt: Date.now()
   };
 
-  // Nếu đang xem 1 quán cụ thể -> Lưu vào quán đó!
+  let isUpdated = false;
+
+  // Nếu đang xem 1 quán cụ thể -> Lưu vào quán đó theo UID
   if (currentReviewLocationIndex !== null && Array.isArray(currentReviewDish.locations) && currentReviewDish.locations[currentReviewLocationIndex]) {
     const targetLoc = currentReviewDish.locations[currentReviewLocationIndex];
     if (!Array.isArray(targetLoc.reviews)) {
       targetLoc.reviews = [...getLocationReviews(targetLoc, currentReviewDish)];
     }
-    targetLoc.reviews.unshift(newReview);
-    if (targetLoc.reviews.length > MAX_REVIEWS_PER_DISH) {
-      targetLoc.reviews = targetLoc.reviews.slice(0, MAX_REVIEWS_PER_DISH);
+    // Tìm review cũ của cùng 1 UID để cập nhật (Mỗi UID chỉ đánh giá 1 lần)
+    const existingIdx = targetLoc.reviews.findIndex(r => r.uid === userUid);
+    if (existingIdx !== -1) {
+      targetLoc.reviews[existingIdx] = { ...targetLoc.reviews[existingIdx], ...reviewData, time: 'Vừa cập nhật' };
+      isUpdated = true;
+    } else {
+      targetLoc.reviews.unshift(reviewData);
+      if (targetLoc.reviews.length > MAX_REVIEWS_PER_DISH) {
+        targetLoc.reviews = targetLoc.reviews.slice(0, MAX_REVIEWS_PER_DISH);
+      }
     }
   } else {
-    // Lưu vào món ăn chung
+    // Lưu vào món ăn chung theo UID
     if (!Array.isArray(currentReviewDish.reviews)) {
       currentReviewDish.reviews = [...getDishReviews(currentReviewDish)];
     }
-    currentReviewDish.reviews.unshift(newReview);
-    if (currentReviewDish.reviews.length > MAX_REVIEWS_PER_DISH) {
-      currentReviewDish.reviews = currentReviewDish.reviews.slice(0, MAX_REVIEWS_PER_DISH);
+    const existingIdx = currentReviewDish.reviews.findIndex(r => r.uid === userUid);
+    if (existingIdx !== -1) {
+      currentReviewDish.reviews[existingIdx] = { ...currentReviewDish.reviews[existingIdx], ...reviewData, time: 'Vừa cập nhật' };
+      isUpdated = true;
+    } else {
+      currentReviewDish.reviews.unshift(reviewData);
+      if (currentReviewDish.reviews.length > MAX_REVIEWS_PER_DISH) {
+        currentReviewDish.reviews = currentReviewDish.reviews.slice(0, MAX_REVIEWS_PER_DISH);
+      }
     }
   }
 
@@ -317,7 +372,7 @@ function handleReviewSubmit(e) {
   if (updateMealTabsCallback) updateMealTabsCallback();
 
   if (reviewCommentInput) reviewCommentInput.value = '';
-  showToast("Cảm ơn bạn đã gửi đánh giá! ⭐", "success");
+  showToast(isUpdated ? "Đánh giá của bạn đã được cập nhật! ⭐" : "Cảm ơn bạn đã gửi đánh giá! ⭐", "success");
 }
 
 export function setupStarRatingSelector() {

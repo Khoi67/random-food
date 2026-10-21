@@ -8,7 +8,9 @@ export default function handler(req, res) {
     storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "",
     messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "",
     appId: process.env.FIREBASE_APP_ID || "",
-    measurementId: process.env.FIREBASE_MEASUREMENT_ID || ""
+    measurementId: process.env.FIREBASE_MEASUREMENT_ID || "",
+    adminEmail: process.env.ADMIN_EMAIL || "",
+    recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY || ""
   };
 
   // Cache tại Vercel Edge CDN trong 24 giờ, giảm tối đa số lượt gọi Serverless

@@ -1,7 +1,9 @@
 import { escapeHtml } from '../utils/helpers.js';
 import { getDishRatingSummary, getLocationRatingSummary, showReviewModal } from './reviews.js';
+import { isFavoriteDish, toggleFavoriteDish } from '../services/history.js';
 
 let currentDishResult = null;
+let onToggleFavoriteCallback = null;
 
 export function showResultModal(dish, currentMeal) {
   currentDishResult = dish;
@@ -13,6 +15,9 @@ export function showResultModal(dish, currentMeal) {
   const modalNearbySearchLink = document.getElementById('modalNearbySearchLink');
   const modalLocationsCount = document.getElementById('modalLocationsCount');
   const modalLocationsList = document.getElementById('modalLocationsList');
+  const modalToggleFavBtn = document.getElementById('modalToggleFavBtn');
+  const modalFavIcon = document.getElementById('modalFavIcon');
+  const modalFavText = document.getElementById('modalFavText');
   const resultModal = document.getElementById('resultModal');
 
   if (modalDishName) modalDishName.textContent = dish.name;
@@ -26,10 +31,39 @@ export function showResultModal(dish, currentMeal) {
     modalMealBadge.textContent = mealNames[currentMeal] || '🍜 Món ngon tại TP.HCM';
   }
 
-  // Cập nhật điểm đánh giá & nút xem review
+  // Nút Yêu Thích (Requirement 3.2)
+  const updateFavBtnState = () => {
+    const isFav = isFavoriteDish(dish.id);
+    if (modalFavIcon) modalFavIcon.textContent = isFav ? '❤️' : '🤍';
+    if (modalFavText) modalFavText.textContent = isFav ? 'Đã Yêu Thích' : 'Yêu thích';
+    if (modalToggleFavBtn) {
+      if (isFav) {
+        modalToggleFavBtn.className = 'inline-flex items-center space-x-1.5 text-xs text-rose-100 bg-rose-600 hover:bg-rose-500 px-3 py-1 rounded-full border border-rose-400/50 transition cursor-pointer shadow-sm hover:scale-105 active:scale-95 font-bold';
+      } else {
+        modalToggleFavBtn.className = 'inline-flex items-center space-x-1.5 text-xs text-rose-300 bg-rose-500/20 hover:bg-rose-500/30 px-3 py-1 rounded-full border border-rose-500/30 transition cursor-pointer shadow-sm hover:scale-105 active:scale-95 font-bold';
+      }
+    }
+  };
+  updateFavBtnState();
+
+  if (modalToggleFavBtn) {
+    modalToggleFavBtn.onclick = () => {
+      const nowFav = toggleFavoriteDish(dish.id);
+      updateFavBtnState();
+      if (onToggleFavoriteCallback) {
+        onToggleFavoriteCallback(dish, nowFav);
+      }
+    };
+  }
+
+  // Cập nhật điểm đánh giá & nút xem review (Requirement 6)
   const summary = getDishRatingSummary(dish);
-  if (modalRatingScore) modalRatingScore.textContent = `${summary.starsText}/5`;
-  if (modalReviewCount) modalReviewCount.textContent = `(${summary.count} review 💬)`;
+  if (modalRatingScore) {
+    modalRatingScore.textContent = summary.hasReviews ? `${summary.starsText}/5` : 'Chưa có đánh giá';
+  }
+  if (modalReviewCount) {
+    modalReviewCount.textContent = summary.hasReviews ? `(${summary.count} review 💬)` : '(Viết review đầu tiên 💬)';
+  }
   if (modalOpenReviewBtn) {
     modalOpenReviewBtn.onclick = () => {
       showReviewModal(dish);
@@ -54,6 +88,14 @@ export function showResultModal(dish, currentMeal) {
       const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullQuery)}`;
       const locSummary = getLocationRatingSummary(loc, dish);
 
+      const ratingBadge = locSummary.hasReviews
+        ? `<span class="inline-flex items-center text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
+             ⭐ ${locSummary.starsText} <span class="text-slate-400 font-normal ml-0.5">(${locSummary.count})</span>
+           </span>`
+        : `<span class="inline-flex items-center text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-700">
+             Chưa có review
+           </span>`;
+
       const card = document.createElement('div');
       card.className = 'group flex items-center justify-between p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-500/40 transition duration-150 text-left';
 
@@ -63,13 +105,11 @@ export function showResultModal(dish, currentMeal) {
             ${index + 1}
           </div>
           <div class="min-w-0 flex-1">
-            <div class="flex items-center space-x-2 flex-wrap">
+            <div class="flex items-center space-x-2 flex-wrap gap-1">
               <h4 class="text-sm font-bold text-white group-hover:text-amber-300 transition truncate">
                 ${escapeHtml(loc.name)}
               </h4>
-              <span class="inline-flex items-center text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
-                ⭐ ${locSummary.starsText} <span class="text-slate-400 font-normal ml-0.5">(${locSummary.count})</span>
-              </span>
+              ${ratingBadge}
             </div>
             <p class="text-xs text-slate-300 truncate mt-0.5" title="${escapeHtml(loc.address)}">
               📍 ${escapeHtml(loc.address)}
@@ -78,11 +118,11 @@ export function showResultModal(dish, currentMeal) {
         </div>
 
         <div class="flex items-center space-x-1.5 flex-shrink-0">
-          <button type="button" class="view-loc-review-btn px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white font-semibold text-xs border border-amber-500/30 transition flex items-center gap-1 cursor-pointer" data-loc-idx="${index}" title="Xem review và đánh giá cho quán này">
+          <button type="button" aria-label="Xem review quán" class="view-loc-review-btn min-h-[36px] px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white font-semibold text-xs border border-amber-500/30 transition flex items-center gap-1 cursor-pointer focus-visible:ring-2 focus-visible:ring-amber-400" data-loc-idx="${index}" title="Xem review và đánh giá cho quán này">
             <span>⭐ Review</span>
           </button>
 
-          <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500 text-sky-300 hover:text-white font-bold text-xs border border-sky-500/30 transition transform active:scale-95" title="Mở Google Maps chỉ đường">
+          <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" aria-label="Mở Google Maps chỉ đường tới quán" class="inline-flex items-center space-x-1 min-h-[36px] px-2.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500 text-sky-300 hover:text-white font-bold text-xs border border-sky-500/30 transition transform active:scale-95 focus-visible:ring-2 focus-visible:ring-sky-400" title="Mở Google Maps chỉ đường">
             <span>Chỉ đường</span>
             <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/>
@@ -118,10 +158,13 @@ export function hideResultModal() {
   }
 }
 
-export function initResultModal({ onSpinAgain }) {
+export function initResultModal({ onSpinAgain, onExcludeDish, onToggleFavorite }) {
+  onToggleFavoriteCallback = onToggleFavorite;
   const closeModalBtn = document.getElementById('closeModalBtn');
   const resultModal = document.getElementById('resultModal');
   const modalSpinAgainBtn = document.getElementById('modalSpinAgainBtn');
+  const modalBackBtn = document.getElementById('modalBackBtn');
+  const modalExcludeDishBtn = document.getElementById('modalExcludeDishBtn');
 
   if (closeModalBtn) {
     closeModalBtn.addEventListener('click', hideResultModal);
@@ -133,10 +176,24 @@ export function initResultModal({ onSpinAgain }) {
     });
   }
 
+  if (modalBackBtn) {
+    modalBackBtn.addEventListener('click', hideResultModal);
+  }
+
   if (modalSpinAgainBtn) {
     modalSpinAgainBtn.addEventListener('click', () => {
       hideResultModal();
       if (onSpinAgain) onSpinAgain();
+    });
+  }
+
+  if (modalExcludeDishBtn) {
+    modalExcludeDishBtn.addEventListener('click', () => {
+      if (currentDishResult && onExcludeDish) {
+        const dishToExclude = currentDishResult;
+        hideResultModal();
+        onExcludeDish(dishToExclude);
+      }
     });
   }
 }
