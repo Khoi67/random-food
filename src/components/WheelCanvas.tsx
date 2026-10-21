@@ -119,33 +119,43 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
         ctx.textBaseline = 'middle';
         ctx.fillStyle = textColor;
 
-        // Display shortName or truncate name
+        // Display dish name or shortName
         const displayName = slice.dish.shortName || slice.dish.name;
-        const maxLen = 14;
 
-        // Adjust font size based on slice count and span
-        let fontSize = 13;
-        if (slices.length > 20) fontSize = 10;
-        else if (slices.length > 12) fontSize = 11;
-        else if (slices.length < 8) fontSize = 14;
+        // Dynamic font sizing based on slice count
+        let baseFontSize = 12;
+        if (slices.length > 22) baseFontSize = 9.5;
+        else if (slices.length > 16) baseFontSize = 10.5;
+        else if (slices.length > 10) baseFontSize = 11.5;
+        else if (slices.length <= 6) baseFontSize = 13.5;
 
-        ctx.font = `bold ${fontSize}px "Be Vietnam Pro", sans-serif`;
+        // Available radial space from center button to outer edge
+        const centerBtnRadius = 38;
+        const maxRadialLength = radius - centerBtnRadius - 14;
+        const textX = radius - 12;
 
-        const textX = radius - 16;
-        if (displayName.length > maxLen && displayName.includes(' ')) {
-          // Wrap into 2 lines
-          const words = displayName.split(' ');
-          const mid = Math.ceil(words.length / 2);
-          const line1 = words.slice(0, mid).join(' ');
-          const line2 = words.slice(mid).join(' ');
+        // Auto-scale font size if text is long to prevent text overflow
+        ctx.font = `bold ${baseFontSize}px "Be Vietnam Pro", sans-serif`;
+        let textWidth = ctx.measureText(displayName).width;
+        let finalFontSize = baseFontSize;
 
-          ctx.fillText(line1, textX, -fontSize / 1.5);
-          ctx.fillText(line2, textX, fontSize / 1.5);
-        } else {
-          const text = displayName.length > 18 ? displayName.slice(0, 17) + '…' : displayName;
-          ctx.fillText(text, textX, 0);
+        if (textWidth > maxRadialLength) {
+          finalFontSize = Math.max(8.5, baseFontSize * (maxRadialLength / textWidth));
+          ctx.font = `bold ${finalFontSize}px "Be Vietnam Pro", sans-serif`;
+          textWidth = ctx.measureText(displayName).width;
         }
 
+        let renderText = displayName;
+        if (textWidth > maxRadialLength) {
+          // If still slightly long, truncate gracefully with ellipsis
+          let truncated = displayName;
+          while (truncated.length > 4 && ctx.measureText(truncated + '…').width > maxRadialLength) {
+            truncated = truncated.slice(0, -1);
+          }
+          renderText = truncated + '…';
+        }
+
+        ctx.fillText(renderText, textX, 0);
         ctx.restore();
       });
 
@@ -169,7 +179,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
     const handleResize = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
-      const size = Math.min(parent.clientWidth, 460);
+      const size = Math.min(parent.clientWidth - 16, 380);
       const dpr = window.devicePixelRatio || 1;
 
       canvas.width = size * dpr;
@@ -258,7 +268,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
   return (
     <div className="flex flex-col items-center justify-center relative select-none">
       {/* Canvas Container */}
-      <div className="relative w-full max-w-[420px] aspect-square flex items-center justify-center p-2">
+      <div className="relative w-full max-w-[380px] aspect-square flex items-center justify-center p-1 sm:p-2">
         {/* Top Pointer Indicator */}
         <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none drop-shadow-[0_4px_10px_rgba(234,88,12,0.8)]">
           <div className="w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[32px] border-t-amber-400" />

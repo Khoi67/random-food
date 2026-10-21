@@ -126,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="fixed inset-0 z-40"
                   onClick={() => setMenuOpen(false)}
                 />
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-2xl p-2 z-50 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 mt-2 w-64 sm:w-72 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-2xl p-2 z-50 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
                   <button
                     onClick={() => {
                       setMenuOpen(false);
@@ -134,12 +134,12 @@ export const Header: React.FC<HeaderProps> = ({
                     }}
                     className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition cursor-pointer"
                   >
-                    <span className="flex items-center gap-2">
-                      <History className="w-4 h-4 text-amber-400" />
-                      Lịch sử 14 ngày & Tránh lặp
+                    <span className="flex items-center gap-2 whitespace-nowrap">
+                      <History className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                      <span>Lịch sử 14 ngày & Tránh lặp</span>
                     </span>
                     {historyCount > 0 && (
-                      <span className="text-[10px] bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded-md font-bold">
+                      <span className="text-[10px] bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded-md font-bold flex-shrink-0 ml-2">
                         {historyCount}
                       </span>
                     )}
