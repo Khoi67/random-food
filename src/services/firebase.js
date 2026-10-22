@@ -397,9 +397,11 @@ export async function addDishCloud(dish) {
 
   if (isFirebaseConnected && firebaseDb) {
     try {
+      const isAdmin = isCurrentUserAdmin();
+      const creatorUid = user?.uid || 'anonymous';
       const payload = {
         ...dish,
-        createdBy: dish.createdBy && dish.createdBy !== 'anonymous' ? dish.createdBy : (user?.uid || 'anonymous')
+        createdBy: isAdmin && dish.createdBy && dish.createdBy !== 'anonymous' ? dish.createdBy : creatorUid
       };
       // Loại bỏ toàn bộ các trường undefined
       const cleanDish = JSON.parse(JSON.stringify(payload));
@@ -420,7 +422,7 @@ export async function addDishCloud(dish) {
     } catch (err) {
       console.warn("Lỗi thêm món lên Cloud:", err);
       if (err?.code === 'PERMISSION_DENIED' || String(err?.message || err).includes('Permission denied')) {
-        showToast("Bạn thao tác hơi nhanh hoặc chưa được cấp quyền, vui lòng thử lại sau ít phút!", "warning");
+        showToast("Chưa thể lưu món lên Cloud lúc này. Vui lòng đợi ít phút hoặc kiểm tra lại kết nối!", "warning");
       }
       return false;
     }

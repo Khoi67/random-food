@@ -193,8 +193,16 @@ export const App: React.FC = () => {
         if (Array.isArray(cloudPending)) {
           const norm = cloudPending.map(normalizeDish) as Dish[];
           setDishes((prev) => {
-            const approvedOnly = prev.filter((d) => d.status === 'approved' || !d.status);
-            return [...norm, ...approvedOnly];
+            const dishMap = new Map<string, Dish>();
+            // Giữ lại toàn bộ món hiện có (bao gồm các món pending vừa thêm cục bộ)
+            for (const d of prev) {
+              dishMap.set(d.id, d);
+            }
+            // Gộp và cập nhật các món pending từ Cloud
+            for (const d of norm) {
+              dishMap.set(d.id, d);
+            }
+            return Array.from(dishMap.values());
           });
         }
       });

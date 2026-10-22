@@ -49,7 +49,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       if (res && res.isAdmin) {
         onAdminStatusChange(true);
         onClose(); // Tự động đóng modal đăng nhập ngay lập tức
-        showToast('Đăng nhập Quản trị viên thành công! 👑', 'success');
       }
     } finally {
       setIsGoogleLoading(false);

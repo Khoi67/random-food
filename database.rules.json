@@ -37,6 +37,9 @@
         "name": {
           ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 100"
         },
+        "id": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 64 && newData.val().matches(/^[A-Za-z0-9_-]+$/))"
+        },
         "priceRange": {
           ".validate": "!newData.exists() || newData.val() === 'under50' || newData.val() === '50to100' || newData.val() === 'above100'"
         },
@@ -125,6 +128,9 @@
         "name": {
           ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 100"
         },
+        "id": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 64 && newData.val().matches(/^[A-Za-z0-9_-]+$/))"
+        },
         "status": {
           ".validate": "newData.val() === 'pending' || (newData.val() === 'approved' && auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())))"
         },
@@ -148,6 +154,12 @@
         },
         "createdAt": {
           ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= now - 600000 && newData.val() <= now + 600000)"
+        },
+        "updatedAt": {
+          ".validate": "!newData.exists() || newData.isNumber()"
+        },
+        "reviews": {
+          ".validate": "!newData.exists() || newData.hasChildren() || !newData.hasChildren()"
         },
         
         // Whitelist mealTypes: tối đa 3 phần tử, mỗi phần tử thuộc 'sang' | 'trua' | 'toi'

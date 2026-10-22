@@ -3,7 +3,7 @@ import { Dish, MealType, PriceRange, DishType, LocationItem } from '../types/ind
 import { X, Plus, Trash2 } from 'lucide-react';
 import { showToast } from '../utils/helpers.js';
 import { trackAddDish } from '../services/analytics.js';
-import { isCurrentUserAdmin, getCurrentUser } from '../services/firebase.js';
+import { isCurrentUserAdmin, getCurrentUser, ensureAuth } from '../services/firebase.js';
 
 interface AddDishModalProps {
   isOpen: boolean;
@@ -57,7 +57,7 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
     setLocations(updated);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // GHI CHÚ BẢO MẬT:
@@ -84,7 +84,6 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
         showToast(`Bạn thao tác quá nhanh. Vui lòng đợi ${remaining}s trước khi gửi món tiếp theo! ⏳`, 'warning');
         return;
       }
-      localStorage.setItem('hom_nay_an_gi_last_dish_time', String(now));
     }
 
     const trimmedName = name.trim();
@@ -107,7 +106,8 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
       }))
       .filter((l) => l.name.length > 0);
 
-    const currentUser = getCurrentUser();
+    const authUser = await ensureAuth();
+    const currentUser = authUser || getCurrentUser();
     const dishStatus = isAdmin ? 'approved' : 'pending';
     const trimmedShortName = shortName.trim();
 
@@ -126,6 +126,10 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
 
     if (trimmedShortName) {
       newDish.shortName = trimmedShortName;
+    }
+
+    if (!isAdmin) {
+      localStorage.setItem('hom_nay_an_gi_last_dish_time', String(Date.now()));
     }
 
     onAddDish(newDish);

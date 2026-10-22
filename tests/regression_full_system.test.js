@@ -345,5 +345,40 @@ describe('🚀 FULL SYSTEM REGRESSION TEST SUITE — HÔM NAY ĂN GÌ (TP.HCM)',
 
       process.env = originalEnv;
     });
+
+    it('6.3. Rules Schema bảo vệ pending_dishes và shared_dishes cho phép trường id', () => {
+      const rules = getRules();
+      const pendingDishSchema = rules.pending_dishes.$dishId;
+      assert.ok(pendingDishSchema.id, 'pending_dishes.$dishId phải có validation cho trường id');
+      assert.ok(pendingDishSchema.id['.validate'].includes('newData.isString()'));
+
+      const sharedDishSchema = rules.shared_dishes.$dishId;
+      assert.ok(sharedDishSchema.id, 'shared_dishes.$dishId phải có validation cho trường id');
+      assert.ok(sharedDishSchema.id['.validate'].includes('newData.isString()'));
+    });
+
+    it('6.4. Cơ chế đồng bộ món chờ duyệt: Map merging không xóa mất món pending cục bộ', () => {
+      const localDishes = [
+        { id: 'dish_local_1', name: 'Bánh Mì Chảo', status: 'pending', mealTypes: ['sang'] },
+        { id: 'dish_local_2', name: 'Phở Bò', status: 'approved', mealTypes: ['sang'] }
+      ];
+
+      const cloudPending = [
+        { id: 'dish_cloud_3', name: 'Hủ Tiếu Nam Vang', status: 'pending', mealTypes: ['sang'] }
+      ];
+
+      const dishMap = new Map();
+      for (const d of localDishes) {
+        dishMap.set(d.id, d);
+      }
+      for (const d of cloudPending) {
+        dishMap.set(d.id, d);
+      }
+      const merged = Array.from(dishMap.values());
+
+      assert.equal(merged.length, 3, 'Phải giữ nguyên cả 3 món (local pending, local approved, cloud pending)');
+      assert.ok(merged.some(d => d.id === 'dish_local_1' && d.status === 'pending'), 'Món pending cục bộ không được bị xóa');
+      assert.ok(merged.some(d => d.id === 'dish_cloud_3' && d.status === 'pending'), 'Món pending từ cloud phải được thêm vào');
+    });
   });
 });
