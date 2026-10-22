@@ -143,13 +143,17 @@ export const DishList: React.FC<DishListProps> = ({
                     .join(', ') || 'TP. Hồ Chí Minh'
                 : 'TP. Hồ Chí Minh';
 
-            // Xử lý an toàn đánh giá sao
-            const reviews = Array.isArray(dish.reviews) ? dish.reviews : [];
-            const hasReviews = reviews.length > 0;
+            // Xử lý an toàn đánh giá sao (tổng hợp từ dish.reviews và các quán trong dish.locations)
+            const locReviews = Array.isArray(dish.locations)
+              ? dish.locations.flatMap((l) => (Array.isArray(l?.reviews) ? l.reviews : []))
+              : [];
+            const dishReviews = Array.isArray(dish.reviews) ? dish.reviews : [];
+            const allReviews = [...dishReviews, ...locReviews];
+            const hasReviews = allReviews.length > 0;
             const avgRating = hasReviews
               ? (
-                  reviews.reduce((sum, r) => sum + (Number(r?.stars) || 5), 0) /
-                  reviews.length
+                  allReviews.reduce((sum, r) => sum + (Number(r?.stars) || 5), 0) /
+                  allReviews.length
                 ).toFixed(1)
               : null;
 
@@ -200,6 +204,12 @@ export const DishList: React.FC<DishListProps> = ({
                       {dish.shortName && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-brand-500/10 text-brand-300 border border-brand-500/20 font-medium whitespace-nowrap">
                           🏷️ {dish.shortName}
+                        </span>
+                      )}
+                      {dish.status === 'pending' && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold whitespace-nowrap animate-pulse flex items-center gap-1">
+                          <span>⏳</span>
+                          <span>Đang chờ duyệt</span>
                         </span>
                       )}
                     </div>
@@ -342,20 +352,30 @@ export const DishList: React.FC<DishListProps> = ({
                   </div>
 
                   {/* Nút Đánh giá */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenReviewModal(dish);
-                    }}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/20 transition cursor-pointer flex-shrink-0"
-                    title="Xem & viết đánh giá cho món này"
-                  >
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                    <span>
-                      {hasReviews ? `${avgRating} (${reviews.length})` : 'Đánh giá'}
+                  {dish.status === 'pending' ? (
+                    <span
+                      className="flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-800/40 px-2 py-0.5 rounded-lg border border-slate-700/40 flex-shrink-0 cursor-not-allowed"
+                      title="Món đang chờ duyệt, chưa mở tính năng đánh giá"
+                    >
+                      <Star className="w-3 h-3 text-slate-600" />
+                      <span>Chưa mở đánh giá</span>
                     </span>
-                  </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenReviewModal(dish);
+                      }}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/20 transition cursor-pointer flex-shrink-0"
+                      title="Xem & viết đánh giá cho món này"
+                    >
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <span>
+                        {hasReviews ? `${avgRating} (${allReviews.length})` : 'Đánh giá'}
+                      </span>
+                    </button>
+                  )}
                 </div>
               </div>
             );

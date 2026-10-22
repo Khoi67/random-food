@@ -1,6 +1,12 @@
 import crypto from 'crypto';
 
 export default function handler(req, res) {
+  // Chỉ cho phép GET và HEAD
+  if (req.method && req.method !== 'GET' && req.method !== 'HEAD') {
+    res.setHeader('Allow', 'GET, HEAD');
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
   // Trả về cấu hình Firebase từ biến môi trường của Vercel
   // Bảo mật: Mã hóa 1 chiều SHA-256 cho ADMIN_EMAIL để KHÔNG BAO GIỜ truyền email dạng thô về client
   const rawEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();

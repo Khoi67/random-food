@@ -78,4 +78,36 @@ describe('Kiểm tra tương thích Thực đơn & Dữ liệu Cũ (DishList & D
     assert.equal(res.length, 1);
     assert.equal(res[0].locations.length, 2);
   });
+
+  it('9. normalizeDish tự gán ID ổn định loc_{dishId}_{index} cho location chưa có ID và bảo toàn review cũ', () => {
+    const rawDish = {
+      id: 'dish_test_100',
+      name: 'Bánh mì chảo',
+      locations: [
+        { name: 'Quán 1', address: '123 Nguyễn Trãi', reviews: [{ id: 'r1', stars: 5, author: 'Huy', comment: 'Ngon', createdAt: 123 }] },
+        { name: 'Quán 2', address: '456 Lê Văn Sỹ' }
+      ],
+      reviews: [{ id: 'r_main', stars: 4, author: 'An', comment: 'Khá ổn', createdAt: 456 }]
+    };
+    const norm = normalizeDish(rawDish);
+    assert.equal(norm.locations[0].id, 'loc_dish_test_100_0');
+    assert.equal(norm.locations[0].reviews.length, 1);
+    assert.equal(norm.locations[0].reviews[0].id, 'r1');
+    assert.equal(norm.locations[1].id, 'loc_dish_test_100_1');
+    assert.equal(norm.reviews.length, 1);
+    assert.equal(norm.reviews[0].id, 'r_main');
+  });
+
+  it('10. normalizeDish bảo toàn ID location sẵn có không bị ghi đè', () => {
+    const dishWithId = {
+      id: 'dish_fixed',
+      name: 'Phở Bắc',
+      locations: [
+        { id: 'custom_loc_id_999', name: 'Quán Phở Gia Truyền', address: 'Quận 1' }
+      ]
+    };
+    const norm = normalizeDish(dishWithId);
+    assert.equal(norm.locations[0].id, 'custom_loc_id_999');
+  });
 });
+

@@ -58,62 +58,84 @@ export function logEvent(eventName, properties = {}) {
 /**
  * 1. Sự kiện quay vòng (spin)
  */
-export function trackSpin({ meal = 'sang', dishesCount = 0, isFiltered = false }) {
+export function trackSpin(options = {}) {
+  const opts = typeof options === 'object' && options !== null ? options : { meal: options };
   logEvent('spin', {
-    meal,
-    dishes_count: dishesCount,
-    is_filtered: isFiltered
+    meal: opts.meal || 'sang',
+    dishes_count: opts.dishesCount || 0,
+    is_filtered: opts.isFiltered || false
   });
 }
 
 /**
  * 2. Sự kiện quay tiếp món khác từ kết quả (spin_again)
  */
-export function trackSpinAgain({ previousDish = '', meal = 'sang' }) {
+export function trackSpinAgain(options = {}) {
+  const opts = typeof options === 'object' && options !== null ? options : { previousDish: options };
   logEvent('spin_again', {
-    previous_dish: previousDish,
-    meal
+    previous_dish: opts.previousDish || '',
+    meal: opts.meal || 'sang'
   });
 }
 
 /**
  * 3. Sự kiện mở Google Maps (open_maps)
  */
-export function trackOpenMaps({ dishName = '', locationName = '', type = 'directions' }) {
+export function trackOpenMaps(dishOrOptions = {}, maybeLocation = '') {
+  let opts = {};
+  if (typeof dishOrOptions === 'string') {
+    opts = { dishName: dishOrOptions, locationName: maybeLocation };
+  } else if (typeof dishOrOptions === 'object' && dishOrOptions !== null) {
+    opts = dishOrOptions;
+  }
   logEvent('open_maps', {
-    dish_name: dishName,
-    location_name: locationName,
-    maps_type: type
+    dish_name: opts.dishName || '',
+    location_name: opts.locationName || '',
+    maps_type: opts.type || 'directions'
   });
 }
 
 /**
  * 4. Sự kiện chia sẻ món ăn (share)
  */
-export function trackShare({ dishName = '', method = 'web_share' }) {
+export function trackShare(options = {}) {
+  const opts = typeof options === 'object' && options !== null ? options : { dishName: options };
   logEvent('share', {
-    dish_name: dishName,
-    share_method: method
+    dish_name: opts.dishName || '',
+    share_method: opts.method || 'web_share'
   });
 }
 
 /**
  * 5. Sự kiện thêm món mới (add_dish)
  */
-export function trackAddDish({ meal = 'sang', hasShortName = false, locationsCount = 0 }) {
+export function trackAddDish(mealOrOptions = {}, maybePrice = '') {
+  let opts = {};
+  if (typeof mealOrOptions === 'string') {
+    opts = { meal: mealOrOptions };
+  } else if (typeof mealOrOptions === 'object' && mealOrOptions !== null) {
+    opts = mealOrOptions;
+  }
   logEvent('add_dish', {
-    meal,
-    has_short_name: hasShortName,
-    locations_count: locationsCount
+    meal: opts.meal || 'sang',
+    has_short_name: opts.hasShortName || false,
+    locations_count: opts.locationsCount || 0
   });
 }
 
 /**
  * 6. Sự kiện sử dụng bộ lọc (filter_used)
  */
-export function trackFilterUsed({ filterType = 'price', filterValue = 'all' }) {
+export function trackFilterUsed(filterTypeOrOptions = {}, maybeValue = '') {
+  let opts = {};
+  if (typeof filterTypeOrOptions === 'string') {
+    opts = { filterType: filterTypeOrOptions, filterValue: maybeValue };
+  } else if (typeof filterTypeOrOptions === 'object' && filterTypeOrOptions !== null) {
+    opts = filterTypeOrOptions;
+  }
   logEvent('filter_used', {
-    filter_type: filterType,
-    filter_value: String(filterValue)
+    filter_type: opts.filterType || 'price',
+    filter_value: String(opts.filterValue || 'all')
   });
 }
+

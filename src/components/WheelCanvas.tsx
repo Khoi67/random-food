@@ -42,6 +42,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bufferCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
+  const isSpinningRef = useRef(false);
   const rotationAngleRef = useRef(0);
   const animFrameIdRef = useRef<number | null>(null);
   const lastTickSliceIndexRef = useRef<number>(-1);
@@ -228,11 +229,12 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
 
   // Spin Wheel function
   const spin = () => {
-    if (isSpinning || slices.length === 0) return;
+    if (isSpinningRef.current || slices.length === 0) return;
 
     const winner = pickWeightedWinner(slices);
     if (!winner) return;
 
+    isSpinningRef.current = true;
     setIsSpinning(true);
     if (onSpinStart) onSpinStart();
 
@@ -282,6 +284,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
       if (progress < 1) {
         animFrameIdRef.current = requestAnimationFrame(animate);
       } else {
+        isSpinningRef.current = false;
         setIsSpinning(false);
         onWinner(winner.dish);
       }
@@ -295,9 +298,22 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
   useEffect(() => {
     if (spinTrigger && spinTrigger > prevSpinTriggerRef.current) {
       prevSpinTriggerRef.current = spinTrigger;
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+      isSpinningRef.current = false;
+      setIsSpinning(false);
       spin();
     }
-  }, [spinTrigger]);
+  }, [spinTrigger, slices]);
+
+  useEffect(() => {
+    return () => {
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex flex-col items-center justify-center relative select-none w-full">

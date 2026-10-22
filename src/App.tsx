@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Dish, MealType, FilterState, ReviewItem } from './types/index.js';
+import { Dish, MealType, FilterState, ReviewItem, ReportItem } from './types/index.js';
 import { DEFAULT_DISHES_HCM } from './data/defaultDishes.js';
 import {
   loadDishesFromLocal,
@@ -11,8 +11,15 @@ import {
   saveDishesCloud,
   addDishCloud,
   deleteDishCloud,
+  updateDishStatusCloud,
+  approveDishCloud,
+  subscribePendingDishesCloud,
+  subscribeReportsCloud,
+  subscribeConfigCloud,
   getCurrentUser,
   isCurrentUserAdmin,
+  addReviewCloud,
+  signOutAdminGoogle,
 } from './services/firebase.js';
 import {
   getSpinHistory,
@@ -39,7 +46,16 @@ import { HistoryModal } from './components/HistoryModal';
 import { ReviewModal } from './components/ReviewModal';
 import { AdminModal } from './components/AdminModal';
 
+// Tối ưu hóa hiệu năng: Tải lười (Lazy-load) Bảng Điều Khiển Quản Trị để giảm kích thước bundle của người dùng thường
+const AdminDashboard = React.lazy(() =>
+  import('./components/admin/AdminDashboard.js').then((m) => ({ default: m.AdminDashboard }))
+);
+
 export const App: React.FC = () => {
+  // Hash routing (#/admin)
+  const [currentHash, setCurrentHash] = useState<string>(() => (typeof window !== 'undefined' ? window.location.hash : ''));
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
   // Dishes state
   const [dishes, setDishes] = useState<Dish[]>(() => loadDishesFromLocal());
 
@@ -68,14 +84,41 @@ export const App: React.FC = () => {
   const [selectedDishDetail, setSelectedDishDetail] = useState<Dish | null>(null);
   const [spinTrigger, setSpinTrigger] = useState(0);
   const [reviewDish, setReviewDish] = useState<Dish | null>(null);
+  const [reviewLocationIndex, setReviewLocationIndex] = useState<number | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   // Status state
   const [isAdmin, setIsAdmin] = useState(false);
+  const [reportsCount, setReportsCount] = useState(0);
+  const [writesEnabled, setWritesEnabled] = useState<boolean>(true);
   const [cloudStatus, setCloudStatus] = useState<'connected' | 'connecting' | 'offline'>('offline');
   const [historyCount, setHistoryCount] = useState<number>(() => getSpinHistory().length);
+
+  // Lắng nghe cờ ngắt ghi hệ thống (Kill Switch) thời gian thực
+  useEffect(() => {
+    const unsub = subscribeConfigCloud((cfg: { writesEnabled?: boolean }) => {
+      setWritesEnabled(cfg?.writesEnabled !== false);
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, []);
+
+  // Lắng nghe số lượng báo cáo vi phạm thời gian thực khi có quyền Admin
+  useEffect(() => {
+    if (isAdmin) {
+      const unsub = subscribeReportsCloud((cloudReports: ReportItem[]) => {
+        setReportsCount(Array.isArray(cloudReports) ? cloudReports.length : 0);
+      });
+      return () => {
+        if (typeof unsub === 'function') unsub();
+      };
+    } else {
+      setReportsCount(0);
+    }
+  }, [isAdmin]);
 
   // Initialize Services (Analytics, PWA, Firebase)
   useEffect(() => {
@@ -118,6 +161,7 @@ export const App: React.FC = () => {
       },
       onAuthChange: ({ isAdmin: adminFlag }: { isAdmin: boolean }) => {
         setIsAdmin(adminFlag);
+        setIsAuthLoading(false);
       },
     });
 
@@ -131,6 +175,35 @@ export const App: React.FC = () => {
       }
     }
   }, []);
+
+  // Lắng nghe thay đổi hash URL (#/admin)
+  useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentHash(window.location.hash);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Lắng nghe danh sách món chờ duyệt từ Cloud cho Quản trị viên
+  useEffect(() => {
+    let unsubPending: (() => void) | undefined;
+    if (isAdmin) {
+      unsubPending = subscribePendingDishesCloud((cloudPending: Dish[]) => {
+        if (Array.isArray(cloudPending)) {
+          const norm = cloudPending.map(normalizeDish) as Dish[];
+          setDishes((prev) => {
+            const approvedOnly = prev.filter((d) => d.status === 'approved' || !d.status);
+            return [...norm, ...approvedOnly];
+          });
+        }
+      });
+    }
+
+    return () => {
+      if (typeof unsubPending === 'function') unsubPending();
+    };
+  }, [isAdmin]);
 
   // Update SEO Title & Meta dynamically
   useEffect(() => {
@@ -165,10 +238,12 @@ export const App: React.FC = () => {
   const persistDishes = (newDishes: Dish[]) => {
     setDishes(newDishes);
     saveDishesLocally(newDishes);
-    saveDishesCloud(newDishes);
+    if (isAdmin) {
+      saveDishesCloud(newDishes);
+    }
   };
 
-  // Filtered Dishes for Active Meal
+  // Filtered Dishes for Active Meal (Strictly approved for the wheel)
   const activeDishes = useMemo(() => {
     const avoidDays = getAvoidDays();
     const recentlyEatenIds = avoidDays > 0 ? getRecentlyEatenDishIds(avoidDays) : null;
@@ -180,6 +255,28 @@ export const App: React.FC = () => {
       filters: currentFilters,
     });
   }, [dishes, currentMeal, excludedDishIds, currentFilters, historyCount]);
+
+  // Pending dishes waiting for admin review
+  const pendingDishes = useMemo(() => {
+    return dishes.filter((d) => d.status === 'pending');
+  }, [dishes]);
+
+  // Dishes displayed in DishList (approved + pending dishes belonging to current user or admin)
+  const listDishes = useMemo(() => {
+    const currentUser = getCurrentUser();
+    const currentUid = currentUser?.uid;
+
+    const userPending = dishes.filter((d) => {
+      if (d.status !== 'pending') return false;
+      const matchMeal = Array.isArray(d.mealTypes)
+        ? d.mealTypes.includes(currentMeal)
+        : (d.meal ? d.meal === currentMeal : true);
+      if (!matchMeal) return false;
+      return isAdmin || (currentUid && d.createdBy === currentUid);
+    });
+
+    return [...userPending, ...activeDishes];
+  }, [dishes, currentMeal, activeDishes, isAdmin]);
 
   // Meal counts for Tab badges
   const mealCounts = useMemo(() => {
@@ -259,6 +356,19 @@ export const App: React.FC = () => {
     }
   };
 
+  // Approve Dish (Admin)
+  const handleApproveDish = async (dish: Dish) => {
+    if (!isAdmin) {
+      showToast('Chỉ Quản trị viên mới có quyền duyệt món!', 'warning');
+      return;
+    }
+    const updated = dishes.map((d) => (d.id === dish.id ? { ...d, status: 'approved' as const } : d));
+    setDishes(updated);
+    saveDishesLocally(updated);
+    await approveDishCloud(dish);
+    showToast(`Đã duyệt món "${dish.name}" thành công! Món đã lên vòng quay 🎉`, 'success');
+  };
+
   // Restore Default Dishes (Admin)
   const handleRestoreDefaults = () => {
     if (!isAdmin) {
@@ -283,21 +393,89 @@ export const App: React.FC = () => {
     setWinnerDish(dish);
   };
 
-  // Add Review
-  const handleAddReview = (dishId: string, review: ReviewItem) => {
+  // Add Review (Location-specific or general dish review)
+  const handleAddReview = (dishId: string, locationIndex: number | null, review: ReviewItem) => {
+    const targetDish = dishes.find((d) => d.id === dishId);
+    if (targetDish && targetDish.status === 'pending') {
+      showToast('Món ăn đang chờ duyệt, chưa mở tính năng đánh giá!', 'warning');
+      return;
+    }
     const updated = dishes.map((d) => {
       if (d.id === dishId) {
-        const revs = d.reviews || [];
-        return { ...d, reviews: [review, ...revs] };
+        if (locationIndex != null && d.locations && d.locations[locationIndex]) {
+          const updatedLocs = [...d.locations];
+          const targetLoc = updatedLocs[locationIndex];
+          const revs = targetLoc.reviews || [];
+          updatedLocs[locationIndex] = {
+            ...targetLoc,
+            reviews: [review, ...revs],
+          };
+          return { ...d, locations: updatedLocs };
+        } else {
+          const revs = d.reviews || [];
+          return { ...d, reviews: [review, ...revs] };
+        }
       }
       return d;
     });
     persistDishes(updated);
+
+    // Đồng bộ đánh giá lên Firebase Cloud (hỗ trợ cả review theo quán lẫn review món)
+    const targetLocId =
+      locationIndex != null && targetDish?.locations && targetDish.locations[locationIndex]
+        ? (targetDish.locations[locationIndex].id || locationIndex)
+        : locationIndex;
+    addReviewCloud(dishId, targetLocId, review);
+
     if (winnerDish && winnerDish.id === dishId) {
-      setWinnerDish({
-        ...winnerDish,
-        reviews: [review, ...(winnerDish.reviews || [])],
-      });
+      if (locationIndex != null && winnerDish.locations && winnerDish.locations[locationIndex]) {
+        const updatedLocs = [...winnerDish.locations];
+        const targetLoc = updatedLocs[locationIndex];
+        updatedLocs[locationIndex] = {
+          ...targetLoc,
+          reviews: [review, ...(targetLoc.reviews || [])],
+        };
+        setWinnerDish({ ...winnerDish, locations: updatedLocs });
+      } else {
+        setWinnerDish({
+          ...winnerDish,
+          reviews: [review, ...(winnerDish.reviews || [])],
+        });
+      }
+    }
+
+    if (selectedDishDetail && selectedDishDetail.id === dishId) {
+      if (locationIndex != null && selectedDishDetail.locations && selectedDishDetail.locations[locationIndex]) {
+        const updatedLocs = [...selectedDishDetail.locations];
+        const targetLoc = updatedLocs[locationIndex];
+        updatedLocs[locationIndex] = {
+          ...targetLoc,
+          reviews: [review, ...(targetLoc.reviews || [])],
+        };
+        setSelectedDishDetail({ ...selectedDishDetail, locations: updatedLocs });
+      } else {
+        setSelectedDishDetail({
+          ...selectedDishDetail,
+          reviews: [review, ...(selectedDishDetail.reviews || [])],
+        });
+      }
+    }
+
+    if (reviewDish && reviewDish.id === dishId) {
+      if (locationIndex != null && reviewDish.locations && reviewDish.locations[locationIndex]) {
+        const updatedLocs = [...reviewDish.locations];
+        const targetLoc = updatedLocs[locationIndex];
+        updatedLocs[locationIndex] = {
+          ...targetLoc,
+          reviews: [review, ...(targetLoc.reviews || [])],
+        };
+        setReviewDish({ ...reviewDish, locations: updatedLocs });
+      } else {
+        setReviewDish({
+          ...reviewDish,
+          reviews: [review, ...(reviewDish.reviews || [])],
+        });
+      }
     }
   };
 
@@ -307,15 +485,57 @@ export const App: React.FC = () => {
     trackFilterUsed('quick_filter', newFilters.price !== 'all' ? newFilters.price : newFilters.dishType);
   };
 
+  // Hash Routing: Hiển thị Bảng Điều Khiển Quản Trị (#/admin)
+  if (currentHash === '#/admin') {
+    return (
+      <React.Suspense
+        fallback={
+          <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center animate-spin mb-4">
+              <span className="text-xl">🛡️</span>
+            </div>
+            <h2 className="text-base font-bold text-white">Đang tải Bảng Điều Khiển Quản Trị...</h2>
+            <p className="text-xs text-slate-400 mt-1">Hệ thống đang chuẩn bị giao diện quản lý.</p>
+          </div>
+        }
+      >
+        <AdminDashboard
+          dishes={dishes}
+          pendingDishes={pendingDishes}
+          setDishes={setDishes}
+          onClose={() => {
+            window.location.hash = '';
+          }}
+          isAdmin={isAdmin}
+          isAuthLoading={isAuthLoading}
+        />
+      </React.Suspense>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white pb-12">
+      {/* Banner Bảo Trì Toàn Hệ Thống Khi Kill Switch Bật */}
+      {!writesEnabled && (
+        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-300 text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2">
+          <span>⚠️ <strong>Thông báo bảo trì:</strong> Hệ thống đang tạm thời ngừng tiếp nhận món ăn và đánh giá mới. Bạn vẫn có thể quay và xem quán bình thường.</span>
+        </div>
+      )}
+
       {/* 1. Sticky Header */}
       <Header
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
+        onSignOut={async () => {
+          await signOutAdminGoogle();
+          setIsAdmin(false);
+        }}
         historyCount={historyCount}
         cloudStatus={cloudStatus}
         isAdmin={isAdmin}
+        pendingDishes={pendingDishes}
+        reportsCount={reportsCount}
+        onApproveDish={handleApproveDish}
       />
 
       {/* 2. Main Container */}
@@ -353,14 +573,14 @@ export const App: React.FC = () => {
           <section className="lg:col-span-5 h-full">
             <DishList
               currentMeal={currentMeal}
-              dishes={activeDishes}
+              dishes={listDishes}
               excludedDishIds={excludedDishIds}
               onToggleExclude={handleToggleExclude}
               onResetExcluded={handleResetExcluded}
               isFavoriteFn={checkIsFavorite}
               onToggleFavorite={handleToggleFavorite}
               onOpenAddModal={() => setIsAddOpen(true)}
-              onOpenReviewModal={(dish) => setReviewDish(dish)}
+              onOpenReviewModal={(dish) => setSelectedDishDetail(dish)}
               onDeleteDish={handleDeleteDish}
               onSelectDish={(dish) => setSelectedDishDetail(dish)}
               isAdmin={isAdmin}
@@ -385,8 +605,9 @@ export const App: React.FC = () => {
           handleToggleExclude(id);
           setWinnerDish(null);
         }}
-        onOpenReviews={(dish) => {
+        onOpenReviews={(dish, locIdx) => {
           setReviewDish(dish);
+          setReviewLocationIndex(locIdx ?? null);
         }}
       />
 
@@ -399,9 +620,9 @@ export const App: React.FC = () => {
           handleToggleExclude(id);
           setSelectedDishDetail(null);
         }}
-        onOpenReviews={(dish) => {
-          setSelectedDishDetail(null);
+        onOpenReviews={(dish, locIdx) => {
           setReviewDish(dish);
+          setReviewLocationIndex(locIdx ?? null);
         }}
       />
 
@@ -423,7 +644,11 @@ export const App: React.FC = () => {
       {/* 4. Review Modal */}
       <ReviewModal
         dish={reviewDish}
-        onClose={() => setReviewDish(null)}
+        locationIndex={reviewLocationIndex}
+        onClose={() => {
+          setReviewDish(null);
+          setReviewLocationIndex(null);
+        }}
         onAddReview={handleAddReview}
       />
 
@@ -434,6 +659,9 @@ export const App: React.FC = () => {
         isAdmin={isAdmin}
         onAdminStatusChange={(status) => setIsAdmin(status)}
         onRestoreDefaults={handleRestoreDefaults}
+        pendingDishes={pendingDishes}
+        onApproveDish={handleApproveDish}
+        onRejectDish={handleDeleteDish}
       />
     </div>
   );

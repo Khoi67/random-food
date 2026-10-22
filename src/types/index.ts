@@ -5,12 +5,14 @@ export type PriceRange = 'under50' | '50to100' | 'above100';
 export type DishType = 'nuoc' | 'kho';
 
 export interface LocationItem {
+  id?: string;
   name: string;
   address: string;
   lat?: number;
   lng?: number;
   distanceKm?: number;
   directionUrl?: string;
+  reviews?: ReviewItem[];
 }
 
 export interface ReviewItem {
@@ -34,6 +36,7 @@ export interface Dish {
   locations?: LocationItem[];
   reviews?: ReviewItem[];
   status?: 'approved' | 'pending' | 'rejected';
+  createdBy?: string;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -62,3 +65,23 @@ export interface WeightedSlice {
   centerAngle: number;
   span: number;
 }
+
+export interface ReportItem {
+  id: string;
+  targetType: 'dish' | 'review';
+  targetId: string;
+  targetName?: string;
+  reason: string;
+  reporterUid?: string;
+  createdAt: number;
+}
+
+export interface AdminAuditLogItem {
+  id: string;
+  adminUid: string;
+  action: string;
+  target?: string;
+  details?: string;
+  timestamp: number;
+}
+

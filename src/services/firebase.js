@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getDatabase, ref, set, get, update, remove, onValue, push } from 'firebase/database';
+import { getDatabase, ref, set, get, update, remove, onValue, push, serverTimestamp } from 'firebase/database';
 import { 
   getAuth, 
   signInAnonymously, 
@@ -47,7 +47,28 @@ export function getIsFirebaseConnected() {
 }
 
 export function getCurrentUser() {
+  if (!currentUser && firebaseAuth && firebaseAuth.currentUser) {
+    currentUser = firebaseAuth.currentUser;
+  }
   return currentUser;
+}
+
+export async function ensureAuth() {
+  if (currentUser) return currentUser;
+  if (firebaseAuth) {
+    if (firebaseAuth.currentUser) {
+      currentUser = firebaseAuth.currentUser;
+      return currentUser;
+    }
+    try {
+      const cred = await signInAnonymously(firebaseAuth);
+      currentUser = cred.user;
+      return currentUser;
+    } catch (e) {
+      console.warn("Lỗi xác thực ẩn danh:", e);
+    }
+  }
+  return null;
 }
 
 export function getAdminEmailHash() {
@@ -352,16 +373,55 @@ export async function signOutAdminGoogle() {
 }
 
 /**
- * Thêm một món ăn mới lên Cloud (Khách hoặc Admin đều được phép theo rule $dishId: !data.exists())
+ * Ghi nhận mốc thời gian thao tác để kiểm soát tần suất (Rate Limit chống spam)
+ */
+export async function recordRateLimitCloud(type) {
+  if (!isFirebaseConnected || !firebaseDb) return;
+  const user = await ensureAuth();
+  if (!user || !user.uid) return;
+  try {
+    const field = type === 'dish' ? 'lastDishAt' : 'lastReviewAt';
+    const limitRef = ref(firebaseDb, `rate_limits/${user.uid}/${field}`);
+    await set(limitRef, Date.now()).catch(() => {});
+  } catch (_) {}
+}
+
+/**
+ * Thêm một món ăn mới lên Cloud (Pending đưa vào node pending_dishes bảo vệ)
  */
 export async function addDishCloud(dish) {
-  if (isFirebaseConnected && firebaseDb && dish && dish.id) {
+  if (!dish || !dish.id) return false;
+
+  // Đảm bảo có tài khoản (Anonymous hoặc Google) trước khi ghi
+  const user = await ensureAuth();
+
+  if (isFirebaseConnected && firebaseDb) {
     try {
-      const dishRef = ref(firebaseDb, `shared_dishes/${dish.id}`);
-      await set(dishRef, dish);
+      const payload = {
+        ...dish,
+        createdBy: dish.createdBy && dish.createdBy !== 'anonymous' ? dish.createdBy : (user?.uid || 'anonymous')
+      };
+      // Loại bỏ toàn bộ các trường undefined
+      const cleanDish = JSON.parse(JSON.stringify(payload));
+      
+      // Món pending được lưu vào node pending_dishes để khách không đọc trộm được qua mạng
+      const targetNode = cleanDish.status === 'pending' ? 'pending_dishes' : 'shared_dishes';
+      
+      // Multi-path atomic update: Ghi món kèm rate limit lastDishAt cùng lúc
+      const updates = {};
+      updates[`${targetNode}/${dish.id}`] = cleanDish;
+      if (user?.uid && user.uid !== 'anonymous') {
+        updates[`rate_limits/${user.uid}/lastDishAt`] = serverTimestamp();
+      }
+
+      await update(ref(firebaseDb), updates);
+      recordRateLimitCloud('dish');
       return true;
     } catch (err) {
       console.warn("Lỗi thêm món lên Cloud:", err);
+      if (err?.code === 'PERMISSION_DENIED' || String(err?.message || err).includes('Permission denied')) {
+        showToast("Bạn thao tác hơi nhanh hoặc chưa được cấp quyền, vui lòng thử lại sau ít phút!", "warning");
+      }
       return false;
     }
   }
@@ -369,13 +429,15 @@ export async function addDishCloud(dish) {
 }
 
 /**
- * Xóa một món ăn trên Cloud (Chỉ Admin mới có quyền theo rule $dishId)
+ * Xóa một món ăn trên Cloud (Chỉ Admin mới có quyền)
  */
 export async function deleteDishCloud(dishId) {
   if (isFirebaseConnected && firebaseDb && dishId) {
     try {
-      const dishRef = ref(firebaseDb, `shared_dishes/${dishId}`);
-      await remove(dishRef);
+      const sharedRef = ref(firebaseDb, `shared_dishes/${dishId}`);
+      await remove(sharedRef).catch(() => {});
+      const pendingRef = ref(firebaseDb, `pending_dishes/${dishId}`);
+      await remove(pendingRef).catch(() => {});
       return true;
     } catch (err) {
       console.error("Lỗi xóa món trên Cloud:", err);
@@ -384,6 +446,72 @@ export async function deleteDishCloud(dishId) {
     }
   }
   return false;
+}
+
+/**
+ * Phê duyệt món ăn từ pending_dishes sang shared_dishes
+ */
+export async function approveDishCloud(dish) {
+  if (isFirebaseConnected && firebaseDb && dish && dish.id) {
+    try {
+      const cleanDish = JSON.parse(JSON.stringify({ ...dish, status: 'approved' }));
+      const sharedRef = ref(firebaseDb, `shared_dishes/${dish.id}`);
+      await set(sharedRef, cleanDish);
+      const pendingRef = ref(firebaseDb, `pending_dishes/${dish.id}`);
+      await remove(pendingRef).catch(() => {});
+      return true;
+    } catch (err) {
+      console.error("Lỗi duyệt món trên Cloud:", err);
+      showToast("Chỉ Quản trị viên mới có quyền duyệt món!", "error");
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Cập nhật trạng thái món ăn trên Cloud (Dành riêng cho Admin duyệt món)
+ */
+export async function updateDishStatusCloud(dishId, status) {
+  if (isFirebaseConnected && firebaseDb && dishId && status) {
+    try {
+      if (status === 'approved') {
+        const pendingRef = ref(firebaseDb, `pending_dishes/${dishId}`);
+        const snap = await get(pendingRef);
+        if (snap.exists()) {
+          const dishData = snap.val();
+          return await approveDishCloud(dishData);
+        }
+      }
+      const statusRef = ref(firebaseDb, `shared_dishes/${dishId}/status`);
+      await set(statusRef, status);
+      return true;
+    } catch (err) {
+      console.error("Lỗi cập nhật trạng thái món trên Cloud:", err);
+      showToast("Chỉ Quản trị viên mới có quyền duyệt món!", "error");
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Đăng ký lắng nghe danh sách món chờ duyệt (Chỉ Admin mới có quyền đọc)
+ */
+export function subscribePendingDishesCloud(onPendingChange) {
+  if (isFirebaseConnected && firebaseDb) {
+    const pendingRef = ref(firebaseDb, "pending_dishes");
+    return onValue(pendingRef, (snap) => {
+      const val = snap.val();
+      const list = val ? Object.values(val) : [];
+      if (typeof onPendingChange === 'function') {
+        onPendingChange(list);
+      }
+    }, (err) => {
+      // Bị chặn Permission Denied nếu tài khoản không phải Admin (Bảo mật đúng thiết kế)
+      console.warn("Lắng nghe pending_dishes bị chặn (Chỉ Admin mới có quyền):", err.code);
+    });
+  }
 }
 
 /**
@@ -426,32 +554,41 @@ export function saveDishesCloud(dishes) {
  */
 export async function submitReportCloud({ targetType, targetId, targetName, reason }) {
   if (!targetId || !reason) return false;
+  const user = await ensureAuth();
+  const reportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const reportData = {
     targetType: targetType || 'dish', // 'dish' | 'review'
-    targetId: String(targetId),
-    targetName: targetName || '',
+    targetId: String(targetId).slice(0, 100),
+    targetName: String(targetName || '').slice(0, 100),
     reason: String(reason).slice(0, 300),
-    reporterUid: currentUser?.uid || 'anonymous',
+    reporterUid: user?.uid || 'anonymous',
     createdAt: Date.now()
   };
 
-  // Lưu cục bộ trước
+  // Lưu cục bộ trước (Local-first)
   try {
     const localReportsKey = 'hom_nay_an_gi_local_reports';
     const existing = JSON.parse(localStorage.getItem(localReportsKey) || '[]');
-    existing.unshift(reportData);
+    existing.unshift({ id: reportId, ...reportData });
     localStorage.setItem(localReportsKey, JSON.stringify(existing.slice(0, 50)));
   } catch (e) { }
 
   if (isFirebaseConnected && firebaseDb) {
     try {
-      const reportsRef = ref(firebaseDb, "reports");
-      const newReportRef = push(reportsRef);
-      await set(newReportRef, reportData);
+      // Multi-path atomic update: Ghi report kèm rate limit lastReportAt cùng lúc
+      const updates = {};
+      updates[`reports/${reportId}`] = reportData;
+      if (user?.uid && user.uid !== 'anonymous') {
+        updates[`rate_limits/${user.uid}/lastReportAt`] = serverTimestamp();
+      }
+      await update(ref(firebaseDb), updates);
       return true;
     } catch (err) {
       console.warn("Lỗi gửi báo cáo lên Cloud:", err);
-      return true; // Vẫn tính là thành công vì đã lưu cục bộ
+      if (err?.code === 'PERMISSION_DENIED' || String(err?.message || err).includes('Permission denied')) {
+        showToast("Bạn gửi báo cáo hơi nhanh, vui lòng thử lại sau ít phút!", "warning");
+      }
+      return true; // Vẫn tính là thành công vì đã lưu cục bộ an toàn
     }
   }
   return true;
@@ -510,3 +647,228 @@ export function syncAdminPinToCloud(newHash) {
     } catch (e) { }
   }
 }
+
+/**
+ * Cập nhật món ăn trên Cloud (Chỉ ghi vào node con shared_dishes/${id})
+ */
+export async function updateDishCloud(dish) {
+  if (!dish || !dish.id) return false;
+  if (isFirebaseConnected && firebaseDb) {
+    try {
+      const cleanDish = JSON.parse(JSON.stringify({ ...dish, updatedAt: Date.now() }));
+      const dishRef = ref(firebaseDb, `shared_dishes/${dish.id}`);
+      await set(dishRef, cleanDish);
+      return true;
+    } catch (err) {
+      console.error("Lỗi cập nhật món trên Cloud:", err);
+      showToast("Chỉ Quản trị viên mới có quyền cập nhật món!", "error");
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Gửi đánh giá món ăn hoặc quán ăn lên Firebase Cloud (Hỗ trợ review theo quán)
+ */
+export async function addReviewCloud(dishId, locationIndexOrId, review) {
+  if (!dishId || !review) return false;
+  const user = await ensureAuth();
+  if (isFirebaseConnected && firebaseDb) {
+    try {
+      const cleanReview = {
+        author: String(review.author || 'Thực khách Sài Gòn').slice(0, 50),
+        stars: Number(review.stars) || 5,
+        comment: String(review.comment || '').slice(0, 300),
+        createdAt: Number(review.createdAt) || Date.now()
+      };
+
+      const reviewUid = user?.uid || review.id || `anon_${Date.now()}`;
+      
+      // Multi-path atomic update: Ghi review kèm rate limit lastReviewAt cùng lúc
+      const updates = {};
+      if (locationIndexOrId != null) {
+        // Ghi vào node location_reviews theo từng quán
+        const locId = String(locationIndexOrId);
+        updates[`location_reviews/${dishId}/${locId}/${reviewUid}`] = cleanReview;
+      } else {
+        // Ghi vào node reviews của món
+        updates[`shared_dishes/${dishId}/reviews/${reviewUid}`] = cleanReview;
+      }
+
+      if (user?.uid && user.uid !== 'anonymous') {
+        updates[`rate_limits/${user.uid}/lastReviewAt`] = serverTimestamp();
+      }
+
+      await update(ref(firebaseDb), updates);
+      await recordRateLimitCloud('review');
+      return true;
+    } catch (err) {
+      console.warn("Lỗi gửi review lên Cloud:", err);
+      if (err?.code === 'PERMISSION_DENIED' || String(err?.message || err).includes('Permission denied')) {
+        showToast("Bạn gửi đánh giá hơi nhanh, vui lòng thử lại sau giây lát nhé!", "warning");
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Xóa review spam trên Cloud
+ */
+export async function deleteReviewCloud(dishId, locationIndex, reviewId) {
+  if (!dishId || !reviewId) return false;
+  if (isFirebaseConnected && firebaseDb) {
+    try {
+      // 1. Xóa trong location_reviews độc lập nếu có
+      if (locationIndex != null) {
+        await remove(ref(firebaseDb, `location_reviews/${dishId}/${locationIndex}/${reviewId}`)).catch(() => {});
+      }
+      // 2. Xóa trong shared_dishes
+      if (locationIndex != null) {
+        const locRef = ref(firebaseDb, `shared_dishes/${dishId}/locations/${locationIndex}`);
+        const snap = await get(locRef);
+        if (snap.exists()) {
+          const locData = snap.val();
+          const updatedReviews = (locData.reviews || []).filter((r) => r.id !== reviewId);
+          await update(locRef, { reviews: updatedReviews });
+          return true;
+        }
+      } else {
+        const dishRef = ref(firebaseDb, `shared_dishes/${dishId}`);
+        const snap = await get(dishRef);
+        if (snap.exists()) {
+          const dishData = snap.val();
+          if (Array.isArray(dishData.reviews)) {
+            const updatedReviews = dishData.reviews.filter((r) => r.id !== reviewId);
+            await update(dishRef, { reviews: updatedReviews });
+            return true;
+          } else if (dishData.reviews && typeof dishData.reviews === 'object') {
+            await remove(ref(firebaseDb, `shared_dishes/${dishId}/reviews/${reviewId}`));
+            return true;
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Lỗi xóa review trên Cloud:", err);
+      showToast("Lỗi xóa đánh giá trên Cloud: " + (err.message || ''), "error");
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Lắng nghe danh sách báo cáo vi phạm thời gian thực (Dành riêng cho Admin)
+ */
+export function subscribeReportsCloud(onReportsChange) {
+  if (isFirebaseConnected && firebaseDb) {
+    const reportsRef = ref(firebaseDb, "reports");
+    return onValue(reportsRef, (snap) => {
+      const val = snap.val();
+      const list = val ? Object.entries(val).map(([id, data]) => ({ id, ...data })) : [];
+      if (typeof onReportsChange === 'function') {
+        onReportsChange(list);
+      }
+    }, (err) => {
+      console.warn("Lỗi lắng nghe reports:", err.code);
+    });
+  }
+  return () => {};
+}
+
+/**
+ * Ghi nhật ký thao tác quản trị viên vào node riêng admin_audit_logs (Local-first + Cloud)
+ */
+export async function logAdminActionCloud({ action, target, details }) {
+  const logItem = {
+    id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    adminUid: currentUser?.uid || 'admin',
+    action: String(action || 'ACTION'),
+    target: String(target || ''),
+    details: details ? (typeof details === 'object' ? JSON.stringify(details) : String(details)) : '',
+    timestamp: Date.now()
+  };
+
+  // Local-First cache
+  try {
+    const localLogsKey = 'admin_audit_logs';
+    const existing = JSON.parse(localStorage.getItem(localLogsKey) || '[]');
+    existing.unshift(logItem);
+    localStorage.setItem(localLogsKey, JSON.stringify(existing.slice(0, 100)));
+  } catch (_) {}
+
+  if (isFirebaseConnected && firebaseDb) {
+    try {
+      const logsRef = ref(firebaseDb, `admin_audit_logs/${logItem.id}`);
+      await set(logsRef, logItem);
+    } catch (err) {
+      console.warn("Lỗi ghi nhật ký admin lên Cloud:", err);
+    }
+  }
+  return logItem;
+}
+
+/**
+ * Lắng nghe nhật ký quản trị viên thời gian thực
+ */
+export function subscribeAdminAuditLogsCloud(onLogsChange) {
+  if (isFirebaseConnected && firebaseDb) {
+    const logsRef = ref(firebaseDb, "admin_audit_logs");
+    return onValue(logsRef, (snap) => {
+      const val = snap.val();
+      const list = val ? Object.values(val).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)) : [];
+      if (typeof onLogsChange === 'function') {
+        onLogsChange(list);
+      }
+    }, (err) => {
+      console.warn("Lỗi lắng nghe admin_audit_logs:", err.code);
+    });
+  }
+  return () => {};
+}
+
+/**
+ * Lắng nghe trạng thái cấu hình hệ thống thời gian thực (Kill Switch)
+ */
+export function subscribeConfigCloud(onConfigChange) {
+  if (isFirebaseConnected && firebaseDb) {
+    const configRef = ref(firebaseDb, "config");
+    return onValue(configRef, (snap) => {
+      const val = snap.val() || {};
+      if (typeof onConfigChange === 'function') {
+        onConfigChange(val);
+      }
+    }, (err) => {
+      console.warn("Lỗi lắng nghe config:", err.code);
+    });
+  }
+  return () => {};
+}
+
+/**
+ * Bật/Tắt cờ ghi hệ thống writesEnabled (Kill Switch - Dành riêng cho Quản trị viên)
+ */
+export async function setWritesEnabledCloud(enabled) {
+  if (!isFirebaseConnected || !firebaseDb) {
+    showToast("Chưa kết nối Firebase Cloud", "error");
+    return false;
+  }
+  try {
+    const configRef = ref(firebaseDb, "config/writesEnabled");
+    await set(configRef, Boolean(enabled));
+    await logAdminActionCloud({
+      action: enabled ? "ENABLE_SYSTEM_WRITES" : "DISABLE_SYSTEM_WRITES",
+      target: "config/writesEnabled",
+      details: enabled ? "Mở lại quyền ghi toàn hệ thống" : "Kích hoạt Kill Switch - Ngắt quyền ghi toàn hệ thống"
+    });
+    showToast(enabled ? "Đã mở lại quyền ghi toàn hệ thống" : "Đã kích hoạt Kill Switch (Khóa ghi hệ thống)", "info");
+    return true;
+  } catch (err) {
+    console.error("Lỗi cập nhật Kill Switch:", err);
+    showToast("Không thể cập nhật cờ Kill Switch: " + (err.message || ''), "error");
+    return false;
+  }
+}
+

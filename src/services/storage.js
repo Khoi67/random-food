@@ -56,7 +56,7 @@ export function parseFirebaseConfig(rawText) {
         .replace(/,\s*\}/g, '}');
       return JSON.parse(jsonText);
     } catch (e) {
-      return (new Function("return " + match[0]))();
+      return null;
     }
   }
   return null;
@@ -117,22 +117,72 @@ export function normalizeDish(dish) {
     }
   }
 
-  // 4. Tags
-  let tags = Array.isArray(dish.tags) ? dish.tags : [];
-  if (tags.length === 0) {
-    if (nameLower.includes('sài gòn') || nameLower.includes('hcm')) tags.push('đặc sản');
-    if (type === 'nuoc') tags.push('món nước');
-    if (type === 'kho') tags.push('món khô');
-    if (vegetarian) tags.push('chay');
+  // 4. Tags: tối đa 10 tags, mỗi tag <= 30 ký tự
+  let rawTags = Array.isArray(dish.tags) ? dish.tags : [];
+  if (rawTags.length === 0) {
+    if (nameLower.includes('sài gòn') || nameLower.includes('hcm')) rawTags.push('đặc sản');
+    if (type === 'nuoc') rawTags.push('món nước');
+    if (type === 'kho') rawTags.push('món khô');
+    if (vegetarian) rawTags.push('chay');
   }
+  const tags = rawTags
+    .filter((t) => typeof t === 'string' && t.trim().length > 0)
+    .map((t) => t.trim().slice(0, 30))
+    .slice(0, 10);
+
+  // 5. Chuẩn hóa mealTypes: mảng tối đa 3 phần tử thuộc 'sang' | 'trua' | 'toi'
+  let mealTypes = Array.isArray(dish.mealTypes) ? dish.mealTypes : [];
+  if (mealTypes.length === 0 && dish.meal && typeof dish.meal === 'string') {
+    mealTypes = [dish.meal];
+  }
+  mealTypes = mealTypes
+    .filter((m) => m === 'sang' || m === 'trua' || m === 'toi')
+    .slice(0, 3);
+  if (mealTypes.length === 0) {
+    mealTypes = ['sang', 'trua', 'toi'];
+  }
+
+  // 6. Chuẩn hóa locations: tối đa 10 quán, gán ID ổn định tuân thủ regex /^[A-Za-z0-9_-]{1,64}$/, bảo toàn đánh giá cũ
+  const dishIdPrefix = String(dish.id || 'dish').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 40);
+  const rawLocations = Array.isArray(dish.locations) ? dish.locations : [];
+  const locations = rawLocations
+    .slice(0, 10)
+    .map((loc, idx) => {
+      if (!loc) return null;
+      if (typeof loc === 'string') {
+        const parts = loc.split(' - ');
+        return {
+          id: `loc_${dishIdPrefix}_${idx}`,
+          name: (parts[0] || 'Quán ngon').trim().slice(0, 100),
+          address: (parts[1] || parts[0] || 'TP. Hồ Chí Minh').trim().slice(0, 200),
+          reviews: []
+        };
+      }
+      if (typeof loc !== 'object') return null;
+
+      const rawId = loc.id && typeof loc.id === 'string' ? loc.id.trim() : '';
+      const safeId = /^[A-Za-z0-9_-]{1,64}$/.test(rawId) ? rawId : `loc_${dishIdPrefix}_${idx}`;
+
+      return {
+        ...loc,
+        id: safeId,
+        name: String(loc.name || 'Quán ngon').slice(0, 100),
+        address: String(loc.address || 'TP. Hồ Chí Minh').slice(0, 200),
+        reviews: Array.isArray(loc.reviews) ? loc.reviews : []
+      };
+    })
+    .filter(Boolean);
 
   return {
     ...dish,
+    mealTypes,
     status: dish.status || 'approved',
     type,
     vegetarian,
     priceRange,
-    tags
+    tags,
+    locations,
+    reviews: Array.isArray(dish.reviews) ? dish.reviews : []
   };
 }
 

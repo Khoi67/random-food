@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, RefreshCw, LogOut } from 'lucide-react';
+import { X, ShieldCheck, RefreshCw, LogOut, Check, Trash2, Clock, CheckCircle2 } from 'lucide-react';
+import { Dish } from '../types/index.js';
 import { showToast } from '../utils/helpers.js';
 import { 
   signInAdminGoogle, 
@@ -13,6 +14,9 @@ interface AdminModalProps {
   isAdmin: boolean;
   onAdminStatusChange: (status: boolean) => void;
   onRestoreDefaults: () => void;
+  pendingDishes?: Dish[];
+  onApproveDish?: (dish: Dish) => void;
+  onRejectDish?: (dish: Dish) => void;
 }
 
 export const AdminModal: React.FC<AdminModalProps> = ({
@@ -21,10 +25,20 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   isAdmin,
   onAdminStatusChange,
   onRestoreDefaults,
+  pendingDishes = [],
+  onApproveDish,
+  onRejectDish,
 }) => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pending' | 'settings'>('pending');
 
   if (!isOpen) return null;
+
+  // Nếu đã đăng nhập Admin, không còn hiện modal duyệt món cũ này nữa (đã chuyển sang Icon Thông Báo trên Header & Trang Quản Trị #/admin)
+  if (isAdmin) {
+    onClose();
+    return null;
+  }
 
   const currentUser = getCurrentUser();
 
@@ -34,6 +48,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       const res = await signInAdminGoogle();
       if (res && res.isAdmin) {
         onAdminStatusChange(true);
+        onClose(); // Tự động đóng modal đăng nhập ngay lập tức
+        showToast('Đăng nhập Quản trị viên thành công! 👑', 'success');
       }
     } finally {
       setIsGoogleLoading(false);
@@ -50,9 +66,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-slate-900 border border-slate-800 p-4 sm:p-6 shadow-2xl flex flex-col">
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800 flex-shrink-0">
           <div className="min-w-0 pr-2">
             <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0" />
@@ -71,8 +87,42 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="py-4 space-y-4">
+        {/* Admin Navigation Tabs */}
+        {isAdmin && (
+          <div className="flex items-center border-b border-slate-800/80 px-4 pt-2 bg-slate-950/40 flex-shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('pending')}
+              className={`py-2 px-3 text-xs font-bold rounded-t-xl transition cursor-pointer flex items-center gap-1.5 border-b-2 ${
+                activeTab === 'pending'
+                  ? 'border-amber-400 text-amber-300 bg-slate-800/60'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Duyệt món chờ</span>
+              {pendingDishes.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-extrabold animate-pulse">
+                  {pendingDishes.length}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('settings')}
+              className={`py-2 px-3 text-xs font-bold rounded-t-xl transition cursor-pointer flex items-center gap-1.5 border-b-2 ${
+                activeTab === 'settings'
+                  ? 'border-emerald-400 text-emerald-300 bg-slate-800/60'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>⚙️ Cài đặt & Dữ liệu</span>
+            </button>
+          </div>
+        )}
+
+        {/* Content Body */}
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
           {!isAdmin ? (
             <div className="space-y-3">
               <button
@@ -93,9 +143,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-400 space-y-2">
                 {currentUser && !currentUser.isAnonymous ? (
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate">Tài khoản Google:</span>
-                    <span className={`font-mono font-semibold text-right truncate ${isAdmin ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {currentUser.email} {isAdmin ? '👑 (Admin)' : '❌ (Chưa cấp quyền)'}
+                    <span className="truncate">Trạng thái tài khoản:</span>
+                    <span className={`font-semibold text-right truncate ${isAdmin ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {isAdmin ? 'Quản trị viên đã xác thực 👑' : 'Chưa được cấp quyền Admin ❌'}
                     </span>
                   </div>
                 ) : (
@@ -105,11 +155,106 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </p>
                 )}
                 <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-800/60 leading-relaxed">
-                  Chỉ tài khoản Google quản trị viên được phân quyền mới có thể xóa món hoặc khôi phục dữ liệu gốc.
+                  Chỉ tài khoản Google quản trị viên được phân quyền mới có thể xóa món, duyệt đề xuất hoặc khôi phục dữ liệu gốc.
                 </p>
               </div>
             </div>
+          ) : activeTab === 'pending' ? (
+            /* TAB 1: DUYỆT MÓN CHỜ */
+            <div className="space-y-3">
+              {pendingDishes.length === 0 ? (
+                <div className="py-10 text-center text-slate-400 space-y-2">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto opacity-80" />
+                  <p className="font-bold text-slate-200 text-sm">Không có món nào đang chờ duyệt! 🎉</p>
+                  <p className="text-xs text-slate-500">Tất cả đề xuất món ăn từ người dùng đều đã được xử lý.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-400 flex items-center justify-between">
+                    <span>Danh sách món người dùng đóng góp cần phê duyệt:</span>
+                    <span className="font-bold text-amber-300">{pendingDishes.length} món</span>
+                  </p>
+
+                  {pendingDishes.map((dish) => {
+                    const locationsList = Array.isArray(dish.locations) ? dish.locations : [];
+                    const locPreview = locationsList
+                      .map((l: any) => (typeof l === 'string' ? l : l?.name || l?.address || ''))
+                      .filter(Boolean)
+                      .join(', ') || 'TP. Hồ Chí Minh';
+
+                    const mealLabels: Record<string, string> = {
+                      sang: 'Sáng',
+                      trua: 'Trưa',
+                      toi: 'Chiều / Tối',
+                    };
+                    const meals = Array.isArray(dish.mealTypes)
+                      ? dish.mealTypes.map((m) => mealLabels[m] || m).join(', ')
+                      : 'Cả ngày';
+
+                    return (
+                      <div
+                        key={dish.id}
+                        className="p-3.5 rounded-2xl bg-slate-950/80 border border-amber-500/30 space-y-2.5 shadow-md hover:border-amber-500/50 transition"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="font-extrabold text-white text-sm sm:text-base leading-snug">
+                                {dish.name}
+                              </h4>
+                              {dish.shortName && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-brand-500/10 text-brand-300 border border-brand-500/20 font-medium">
+                                  🏷️ {dish.shortName}
+                                </span>
+                              )}
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                                ⏳ Chờ duyệt
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              Bữa ăn: <span className="text-slate-200 font-semibold">{meals}</span> • Kiểu:{' '}
+                              <span className="text-slate-200 font-semibold">
+                                {dish.type === 'nuoc' ? 'Món nước' : 'Món khô'}
+                              </span>{' '}
+                              {dish.vegetarian ? '• 🌱 Chay' : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Location Preview */}
+                        <div className="text-[11px] text-slate-400 bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                          <span className="text-slate-300 font-medium">Quán gợi ý: </span>
+                          <span>{locPreview}</span>
+                        </div>
+
+                        {/* Action Buttons: Approve & Reject */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => onApproveDish && onApproveDish(dish)}
+                            className="flex-1 py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 transition cursor-pointer"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Duyệt & Đưa lên vòng quay</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onRejectDish && onRejectDish(dish)}
+                            className="py-2 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                            title="Từ chối hoặc xóa đề xuất này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Từ chối</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           ) : (
+            /* TAB 2: CÀI ĐẶT & DỮ LIỆU */
             <div className="space-y-4">
               <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1">
                 <div className="font-bold flex items-center gap-1.5">
@@ -117,7 +262,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   <span>Đã xác thực Quản Trị Viên thành công!</span>
                 </div>
                 <p className="text-[11px] text-emerald-400/80 leading-relaxed">
-                  Tài khoản: <span className="font-mono font-semibold text-white break-all">{currentUser?.email}</span>. Bạn có toàn quyền xóa món ăn và khôi phục thực đơn gốc.
+                  Tài khoản: <span className="font-mono font-semibold text-white break-all">{currentUser?.email}</span>. Bạn có toàn quyền duyệt món, xóa món và khôi phục thực đơn gốc.
                 </p>
               </div>
 

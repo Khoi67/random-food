@@ -3,6 +3,7 @@ import { Dish, MealType, PriceRange, DishType, LocationItem } from '../types/ind
 import { X, Plus, Trash2 } from 'lucide-react';
 import { showToast } from '../utils/helpers.js';
 import { trackAddDish } from '../services/analytics.js';
+import { isCurrentUserAdmin, getCurrentUser } from '../services/firebase.js';
 
 interface AddDishModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
   const [locations, setLocations] = useState<LocationItem[]>([
     { name: '', address: '' },
   ]);
+  const [honeypot, setHoneypot] = useState('');
 
   if (!isOpen) return null;
 
@@ -58,6 +60,33 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // GHI CHÚ BẢO MẬT:
+    // Client-side honeypot và rate limit (localStorage) chỉ là lớp bảo vệ phụ trợ nhằm giảm tải và bẫy bot sơ cấp.
+    // Lớp bảo mật cốt lõi, không thể bypass là Firebase Realtime Database Security Rules và App Check.
+    
+    // 1. Kiểm tra Honeypot (bot trap)
+    if (honeypot) {
+      console.warn('Phát hiện bot tự động điền form qua honeypot');
+      onClose();
+      return;
+    }
+
+    const isAdmin = isCurrentUserAdmin();
+
+    // 2. Kiểm tra Rate Limit phía Client (Cooldown 60s cho khách thường)
+    if (!isAdmin) {
+      const lastDishTime = Number(localStorage.getItem('hom_nay_an_gi_last_dish_time') || 0);
+      const now = Date.now();
+      const elapsed = (now - lastDishTime) / 1000;
+      const cooldownSec = 60;
+      if (elapsed < cooldownSec) {
+        const remaining = Math.ceil(cooldownSec - elapsed);
+        showToast(`Bạn thao tác quá nhanh. Vui lòng đợi ${remaining}s trước khi gửi món tiếp theo! ⏳`, 'warning');
+        return;
+      }
+      localStorage.setItem('hom_nay_an_gi_last_dish_time', String(now));
+    }
+
     const trimmedName = name.trim();
     if (!trimmedName) {
       showToast('Vui lòng nhập tên món ăn!', 'warning');
@@ -69,30 +98,48 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
       return;
     }
 
-    const validLocations = locations
-      .map((l) => ({ name: l.name.trim(), address: l.address.trim() }))
+    const dishId = `dish_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const validLocations: LocationItem[] = locations
+      .map((l, idx) => ({
+        id: l.id || `loc_${dishId}_${idx}`,
+        name: l.name.trim(),
+        address: l.address.trim() || 'TP. Hồ Chí Minh'
+      }))
       .filter((l) => l.name.length > 0);
 
+    const currentUser = getCurrentUser();
+    const dishStatus = isAdmin ? 'approved' : 'pending';
+    const trimmedShortName = shortName.trim();
+
     const newDish: Dish = {
-      id: `dish_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      id: dishId,
       name: trimmedName,
-      shortName: shortName.trim() || undefined,
       mealTypes: selectedMeals,
       priceRange,
       type: dishType,
       vegetarian,
-      locations: validLocations.length > 0 ? validLocations : [{ name: trimmedName, address: 'TP. Hồ Chí Minh' }],
-      status: 'approved',
+      locations: validLocations.length > 0 ? validLocations : [{ id: `loc_${dishId}_0`, name: trimmedName, address: 'TP. Hồ Chí Minh' }],
+      status: dishStatus,
+      createdBy: currentUser?.uid || 'anonymous',
       createdAt: Date.now(),
     };
 
+    if (trimmedShortName) {
+      newDish.shortName = trimmedShortName;
+    }
+
     onAddDish(newDish);
     trackAddDish(trimmedName, priceRange);
-    showToast(`Đã thêm món "${trimmedName}" thành công! 🎉`, 'success');
+    if (isAdmin) {
+      showToast(`Đã thêm món "${trimmedName}" thành công! 🎉`, 'success');
+    } else {
+      showToast(`Đã gửi đề xuất món "${trimmedName}"! Món sẽ hiển thị sau khi Quản trị viên duyệt. 🎉`, 'info');
+    }
 
     // Reset Form
     setName('');
     setShortName('');
+    setHoneypot('');
     setLocations([{ name: '', address: '' }]);
     onClose();
   };
@@ -121,6 +168,18 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
 
         {/* Scrollable Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-4 py-3 pr-1">
+          {/* Honeypot Field - Ẩn với người dùng, bẫy spam bot */}
+          <div style={{ display: 'none' }} aria-hidden="true">
+            <input
+              type="text"
+              name="website_url"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+            />
+          </div>
+
           {/* Tên món */}
           <div>
             <label className="block text-xs font-bold text-slate-300 mb-1">

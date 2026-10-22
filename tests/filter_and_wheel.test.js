@@ -75,6 +75,13 @@ describe('Logic Lọc Món Ăn (filterDishes)', () => {
     assert.equal(res.some(d => d.id === 'dish-5'), false);
   });
 
+  it('món pending sau khi được Admin duyệt (status: approved) sẽ xuất hiện trên vòng quay', () => {
+    const approvedDish5 = { ...sampleDishes.find(d => d.id === 'dish-5'), status: 'approved' };
+    const updatedList = [...sampleDishes.filter(d => d.id !== 'dish-5'), approvedDish5];
+    const res = filterDishes(updatedList, { currentMeal: 'sang' });
+    assert.equal(res.some(d => d.id === 'dish-5'), true);
+  });
+
   it('hỗ trợ món mặc định cũ không có trường status', () => {
     const res = filterDishes(sampleDishes, { currentMeal: 'trua' });
     assert.equal(res.some(d => d.id === 'dish-6'), true);

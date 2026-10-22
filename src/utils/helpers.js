@@ -38,7 +38,13 @@ export function showToast(message, type = 'info') {
   }
 
   toast.className = `flex items-center space-x-2.5 px-4 py-3 rounded-2xl border ${border} shadow-2xl text-xs font-semibold backdrop-blur-md transform transition-all duration-300 translate-y-3 opacity-0 pointer-events-auto`;
-  toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
+  
+  const iconSpan = document.createElement('span');
+  iconSpan.textContent = icon;
+  const textSpan = document.createElement('span');
+  textSpan.textContent = String(message || '');
+  toast.appendChild(iconSpan);
+  toast.appendChild(textSpan);
 
   toastContainer.appendChild(toast);
 
@@ -89,3 +95,40 @@ export function launchConfetti() {
   fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
   fire(0.1, { spread: 120, startVelocity: 45 });
 }
+
+/**
+ * Lọc và bảo vệ URL an toàn (XSS Protection):
+ * Chặn triệt để javascript:, data:, vbscript:. Chỉ chấp nhận https:, http:, /, #
+ */
+export function safeUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.startsWith('javascript:') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('vbscript:') ||
+    lower.includes('\0')
+  ) {
+    return '';
+  }
+  if (
+    lower.startsWith('https://') ||
+    lower.startsWith('http://') ||
+    lower.startsWith('/') ||
+    lower.startsWith('#')
+  ) {
+    return trimmed;
+  }
+  return '';
+}
+
+/**
+ * Tạo URL chỉ đường Google Maps Directions an toàn tuyệt đối
+ */
+export function createGoogleMapsUrl(name, address) {
+  const destParts = [address, name].filter((p) => p && typeof p === 'string' && p.trim().length > 0);
+  const destText = (destParts.join(', ') || 'TP. Hồ Chí Minh') + ', TP. Hồ Chí Minh';
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destText)}`;
+}
+

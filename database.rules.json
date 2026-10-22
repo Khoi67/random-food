@@ -1,0 +1,326 @@
+{
+  "rules": {
+    "admin_config": {
+      // Chỉ Admin được đọc và ghi dữ liệu cấu hình hệ thống:
+      ".read": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))",
+      ".write": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))"
+    },
+
+    // 0. CẤU HÌNH HỆ THỐNG CÔNG KHAI (KILL SWITCH)
+    "config": {
+      // Công khai cho mọi khách đọc để hiển thị banner bảo trì / trạng thái:
+      ".read": true,
+      "writesEnabled": {
+        // Chỉ Quản trị viên mới có quyền bật/tắt cờ ngắt ghi hệ thống:
+        ".write": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))"
+      },
+      "$other": {
+        ".validate": false
+      }
+    },
+    
+    // 1. THỰC ĐƠN CHÍNH THỨC DÙNG CHUNG
+    "shared_dishes": {
+      // Công khai cho mọi khách đọc:
+      ".read": true,
+      
+      // CHỈ Quản trị viên mới có quyền Ghi đè toàn bộ thực đơn (Khôi phục mẫu gốc):
+      ".write": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))",
+      
+      "$dishId": {
+        // QUYỀN GHI: CHỈ Admin mới có quyền ghi vào shared_dishes (thêm, duyệt, sửa, xóa)
+        // Đã xóa hoàn toàn nhánh người tạo sửa món để bảo vệ toàn vẹn dữ liệu
+        ".write": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))",
+        
+        ".validate": "newData.hasChildren(['name', 'mealTypes'])",
+        
+        "name": {
+          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 100"
+        },
+        "priceRange": {
+          ".validate": "!newData.exists() || newData.val() === 'under50' || newData.val() === '50to100' || newData.val() === 'above100'"
+        },
+        "type": {
+          ".validate": "!newData.exists() || newData.val() === 'nuoc' || newData.val() === 'kho'"
+        },
+        "vegetarian": {
+          ".validate": "!newData.exists() || newData.isBoolean()"
+        },
+        "status": {
+          // Chỉ Admin mới được chuyển sang hoặc đặt 'approved':
+          ".validate": "newData.val() === 'pending' || (newData.val() === 'approved' && auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())))"
+        },
+        "createdBy": {
+          ".validate": "!newData.exists() || newData.val() === auth.uid || (auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())))"
+        },
+        "mealTypes": {
+          ".validate": "newData.hasChildren() || newData.isString()"
+        },
+        "locations": {
+          ".validate": "!newData.exists() || newData.hasChildren()"
+        },
+        "tags": {
+          ".validate": "!newData.exists() || newData.hasChildren() || newData.isString()"
+        },
+        "shortName": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 50)"
+        },
+        "meal": {
+          ".validate": "!newData.exists() || newData.isString()"
+        },
+        "createdAt": {
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= now - 600000 && newData.val() <= now + 600000)"
+        },
+        "updatedAt": {
+          ".validate": "!newData.exists() || newData.isNumber()"
+        },
+        
+        // 2. ĐÁNH GIÁ (MỖI UID DUY NHẤT MỘT REVIEW TRÊN MỘT MÓN)
+        "reviews": {
+          ".read": true,
+          "$uid": {
+            // Người dùng chỉ ghi vào node mang đúng UID của mình khi writesEnabled !== false kèm rate limit (20s). Admin có quyền xóa:
+            ".write": "(auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))) || (root.child('config/writesEnabled').val() !== false && auth != null && auth.uid === $uid && (!root.child('rate_limits').child(auth.uid).child('lastReviewAt').exists() || root.child('rate_limits').child(auth.uid).child('lastReviewAt').val() <= now - 20000))",
+            ".validate": "newData.hasChildren(['author', 'stars', 'comment', 'createdAt'])",
+            "author": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 50"
+            },
+            "stars": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5"
+            },
+            "comment": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 300"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber() && newData.val() >= now - 600000 && newData.val() <= now + 600000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+
+        // 2.1 ĐƯỜNG DẪN REVIEW CŨ TRONG SHARED_DISHES (CHUYỂN SANG CHẾ ĐỘ CHỈ ĐỌC, CẤM GHI ĐỂ TRÁNH TRÙNG LẶP)
+        "location_reviews": {
+          ".read": true,
+          "$locId": {
+            "$uid": {
+              ".write": false
+            }
+          }
+        }
+      }
+    },
+
+    // 2. KHO MÓN CHỜ DUYỆT (CHỈ ADMIN MỚI ĐƯỢC ĐỌC)
+    "pending_dishes": {
+      // Chỉ Admin mới được đọc danh sách chờ duyệt:
+      ".read": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))",
+      
+      "$dishId": {
+        // Khách chỉ được tạo mới (!data.exists()) khi writesEnabled !== false. Bắt buộc status: pending, createdBy: auth.uid và rate limit 60s:
+        ".write": "(auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))) || (root.child('config/writesEnabled').val() !== false && auth != null && !data.exists() && newData.child('createdBy').val() === auth.uid && newData.child('status').val() === 'pending' && $dishId.matches(/^[A-Za-z0-9_-]{1,64}$/) && (!root.child('rate_limits').child(auth.uid).child('lastDishAt').exists() || root.child('rate_limits').child(auth.uid).child('lastDishAt').val() <= now - 60000))",
+        ".validate": "newData.hasChildren(['name', 'mealTypes', 'status', 'createdBy'])",
+        
+        "name": {
+          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 100"
+        },
+        "status": {
+          ".validate": "newData.val() === 'pending' || (newData.val() === 'approved' && auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())))"
+        },
+        "createdBy": {
+          ".validate": "newData.val() === auth.uid || (auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())))"
+        },
+        "priceRange": {
+          ".validate": "!newData.exists() || newData.val() === 'under50' || newData.val() === '50to100' || newData.val() === 'above100'"
+        },
+        "type": {
+          ".validate": "!newData.exists() || newData.val() === 'nuoc' || newData.val() === 'kho'"
+        },
+        "vegetarian": {
+          ".validate": "!newData.exists() || newData.isBoolean()"
+        },
+        "meal": {
+          ".validate": "!newData.exists() || newData.isString()"
+        },
+        "shortName": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 50)"
+        },
+        "createdAt": {
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= now - 600000 && newData.val() <= now + 600000)"
+        },
+        
+        // Whitelist mealTypes: tối đa 3 phần tử, mỗi phần tử thuộc 'sang' | 'trua' | 'toi'
+        "mealTypes": {
+          ".validate": "newData.hasChildren()",
+          "$index": {
+            ".validate": "newData.isString() && (newData.val() === 'sang' || newData.val() === 'trua' || newData.val() === 'toi') && $index.matches(/^[0-2]$/)"
+          }
+        },
+
+        // Whitelist tags: tối đa 10 tag, mỗi tag <= 30 ký tự (index 0..9)
+        "tags": {
+          ".validate": "!newData.exists() || newData.hasChildren() || newData.isString()",
+          "$index": {
+            ".validate": "newData.isString() && newData.val().length <= 30 && $index.matches(/^[0-9]$/)"
+          }
+        },
+
+        // Whitelist locations: tối đa 10 quán, name <= 100, address <= 200, id <= 64
+        "locations": {
+          ".validate": "!newData.exists() || newData.hasChildren()",
+          "$index": {
+            ".validate": "newData.hasChildren(['name', 'address']) && $index.matches(/^[0-9]$/)",
+            "id": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 64 && newData.val().matches(/^[A-Za-z0-9_-]+$/))"
+            },
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 100"
+            },
+            "address": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            },
+            "lat": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            },
+            "lng": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            },
+            "distanceKm": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            },
+            "directionUrl": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 500)"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+
+        // Chặn toàn bộ các trường lạ ngoài schema
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+
+    // 3. BÁO CÁO VI PHẠM (CHỐNG SỬA/XÓA CỦA NGƯỜI KHÁC, RATE LIMIT 30S)
+    "reports": {
+      // Chỉ Quản trị viên mới có quyền xem danh sách báo cáo:
+      ".read": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))",
+      
+      "$reportId": {
+        // Khách chỉ được TẠO MỚI (!data.exists()) khi writesEnabled !== false kèm rate limit 30s. Chỉ Admin mới được XÓA report đã xử lý:
+        ".write": "(auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))) || (root.child('config/writesEnabled').val() !== false && auth != null && !data.exists() && $reportId.matches(/^[A-Za-z0-9_-]{1,64}$/) && (!root.child('rate_limits').child(auth.uid).child('lastReportAt').exists() || root.child('rate_limits').child(auth.uid).child('lastReportAt').val() <= now - 30000))",
+        ".validate": "newData.hasChildren(['targetId', 'reason', 'createdAt'])",
+        "targetId": {
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "targetType": {
+          ".validate": "!newData.exists() || newData.val() === 'dish' || newData.val() === 'review'"
+        },
+        "targetName": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+        },
+        "reporterUid": {
+          ".validate": "!newData.exists() || newData.isString()"
+        },
+        "reason": {
+          ".validate": "newData.isString() && newData.val().length >= 5 && newData.val().length <= 300"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() >= now - 600000 && newData.val() <= now + 600000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+
+    // 4. NHẬT KÝ THAO TÁC QUẢN TRỊ VIÊN (APPEND-ONLY: CHỈ THÊM, CẤM SỬA/XÓA)
+    "admin_audit_logs": {
+      // Chỉ Quản trị viên mới được đọc:
+      ".read": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))",
+      
+      "$logId": {
+        // APPEND-ONLY: Chỉ Admin được tạo mới (!data.exists() && newData.exists()), CẤM sửa hoặc xóa:
+        ".write": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())) && !data.exists() && newData.exists() && $logId.matches(/^[A-Za-z0-9_-]{1,64}$/)",
+        ".validate": "newData.hasChildren(['action', 'timestamp', 'adminUid'])",
+        "action": {
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "adminUid": {
+          ".validate": "newData.val() === auth.uid"
+        },
+        "timestamp": {
+          ".validate": "newData.isNumber() && newData.val() >= now - 600000 && newData.val() <= now + 600000"
+        },
+        "target": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+        },
+        "details": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 500)"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+
+    // 5. ĐÁNH GIÁ THEO TỪNG QUÁN ĐỘC LẬP TẠI GỐC (DUY NHẤT 1 ĐƯỜNG DẪN CHUẨN)
+    "location_reviews": {
+      ".read": true,
+      "$dishId": {
+        "$locId": {
+          "$uid": {
+            // Yêu cầu món ăn phải tồn tại trong shared_dishes + writesEnabled !== false + rate limit 20s:
+            ".write": "(auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))) || (root.child('config/writesEnabled').val() !== false && auth != null && auth.uid === $uid && root.child('shared_dishes').child($dishId).exists() && $dishId.matches(/^[A-Za-z0-9_-]{1,64}$/) && $locId.matches(/^[A-Za-z0-9_-]{1,64}$/) && (!root.child('rate_limits').child(auth.uid).child('lastReviewAt').exists() || root.child('rate_limits').child(auth.uid).child('lastReviewAt').val() <= now - 20000))",
+            ".validate": "newData.hasChildren(['author', 'stars', 'comment', 'createdAt'])",
+            "author": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 50"
+            },
+            "stars": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5"
+            },
+            "comment": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 300"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber() && newData.val() >= now - 600000 && newData.val() <= now + 600000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    },
+
+    // 6. GIỚI HẠN TẦN SUẤT THAO TÁC (CHỐNG SPAM)
+    "rate_limits": {
+      "$uid": {
+        // Chỉ chính chủ hoặc Admin được đọc rate limit của tài khoản:
+        ".read": "auth != null && (auth.uid === $uid || (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())))",
+        
+        // KHÔNG ĐẶT .write ở cấp $uid để chống việc khách xóa cả node để reset mốc thời gian!
+        
+        "lastDishAt": {
+          ".write": "auth != null && (auth.uid === $uid || (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))) && newData.exists()",
+          ".validate": "newData.isNumber() && newData.val() === now"
+        },
+        "lastReviewAt": {
+          ".write": "auth != null && (auth.uid === $uid || (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))) && newData.exists()",
+          ".validate": "newData.isNumber() && newData.val() === now"
+        },
+        "lastReportAt": {
+          ".write": "auth != null && (auth.uid === $uid || (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))) && newData.exists()",
+          ".validate": "newData.isNumber() && newData.val() === now"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
