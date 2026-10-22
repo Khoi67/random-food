@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dish, ReportItem, AdminAuditLogItem } from '../../types/index.js';
+import { Dish, ReportItem, AdminAuditLogItem, LocationSuggestion } from '../../types/index.js';
 import { 
   approveDishCloud, 
   deleteDishCloud, 
@@ -9,9 +9,14 @@ import {
   saveDishesCloud,
   subscribeReportsCloud,
   subscribeAdminAuditLogsCloud,
+  subscribePendingLocationsCloud,
+  approveLocationSuggestionCloud,
+  rejectLocationSuggestionCloud,
   subscribeConfigCloud,
   setWritesEnabledCloud,
   logAdminActionCloud,
+  cleanupExpiredAuditLogsCloud,
+  AUDIT_LOG_TTL_MS,
   isCurrentUserAdmin
 } from '../../services/firebase.js';
 import { saveDishesLocally, normalizeDish } from '../../services/storage.js';
@@ -33,7 +38,9 @@ import {
   MessageSquare, 
   HardDriveDownload, 
   History,
-  Lock
+  Lock,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -61,15 +68,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'queue' | 'dishes' | 'reviews' | 'backup' | 'logs'>('overview');
   const [reports, setReports] = useState<ReportItem[]>([]);
+  const [pendingLocations, setPendingLocations] = useState<LocationSuggestion[]>([]);
   const [writesEnabled, setWritesEnabled] = useState<boolean>(true);
   const [isTogglingKillSwitch, setIsTogglingKillSwitch] = useState<boolean>(false);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLogItem[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem('admin_audit_logs') || '[]');
+      const raw: AdminAuditLogItem[] = JSON.parse(localStorage.getItem('admin_audit_logs') || '[]');
+      const now = Date.now();
+      const valid = raw.filter((l) => l && typeof l.timestamp === 'number' && (now - l.timestamp) <= AUDIT_LOG_TTL_MS);
+      if (valid.length !== raw.length) {
+        localStorage.setItem('admin_audit_logs', JSON.stringify(valid));
+      }
+      return valid;
     } catch (_) {
       return [];
     }
   });
+
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
+
+  const handleToggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    if (next) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('food_wheel_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('food_wheel_theme', 'light');
+    }
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', next ? '#020617' : '#f8fafc');
+    }
+  };
 
   // 1. Quản lý thẻ meta robots noindex cho trang Admin
   useEffect(() => {
@@ -96,12 +133,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   useEffect(() => {
     if (!isAdmin) return;
 
+    // Tự động dọn dẹp các bản ghi nhật ký quá hạn 3 ngày trên Cloud
+    cleanupExpiredAuditLogsCloud().catch(() => {});
+
     const unsubReports = subscribeReportsCloud((cloudReports: ReportItem[]) => {
       setReports(cloudReports);
     });
 
+    const unsubLocations = subscribePendingLocationsCloud((cloudLocs: LocationSuggestion[]) => {
+      setPendingLocations(cloudLocs);
+    });
+
     const unsubLogs = subscribeAdminAuditLogsCloud((cloudLogs: AdminAuditLogItem[]) => {
-      setAuditLogs(cloudLogs);
+      if (Array.isArray(cloudLogs) && cloudLogs.length > 0) {
+        setAuditLogs(cloudLogs);
+        try {
+          localStorage.setItem('admin_audit_logs', JSON.stringify(cloudLogs.slice(0, 100)));
+        } catch (_) {}
+      }
     });
 
     const unsubConfig = subscribeConfigCloud((cfg: { writesEnabled?: boolean }) => {
@@ -110,6 +159,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     return () => {
       if (typeof unsubReports === 'function') unsubReports();
+      if (typeof unsubLocations === 'function') unsubLocations();
       if (typeof unsubLogs === 'function') unsubLogs();
       if (typeof unsubConfig === 'function') unsubConfig();
     };
@@ -154,6 +204,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // CÁC HÀNH ĐỘNG QUẢN TRỊ VIÊN (TUÂN THỦ AGENTS.MD)
   // ----------------------------------------------------
 
+  // Helper ghi nhận nhật ký và cập nhật UI ngay lập tức
+  const recordAdminAction = async (action: string, target: string, details: string) => {
+    const logItem = await logAdminActionCloud({ action, target, details });
+    if (logItem) {
+      setAuditLogs((prev) => [logItem, ...prev.filter((l) => l.id !== logItem.id)]);
+    }
+  };
+
   // 1. Phê duyệt món
   const handleApproveDish = async (dish: Dish) => {
     const success = await approveDishCloud(dish);
@@ -165,11 +223,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         saveDishesLocally(updated);
         return updated;
       });
-      await logAdminActionCloud({
-        action: 'APPROVE_DISH',
-        target: dish.name,
-        details: `Đã phê duyệt món "${dish.name}" vào thực đơn phục vụ.`
-      });
+      await recordAdminAction(
+        'APPROVE_DISH',
+        dish.name,
+        `Đã phê duyệt món "${dish.name}" vào thực đơn phục vụ.`
+      );
       showToast(`Đã duyệt món "${dish.name}" thành công! 🎉`, 'success');
     }
   };
@@ -186,11 +244,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         saveDishesLocally(updated);
         return updated;
       });
-      await logAdminActionCloud({
-        action: 'REJECT_DISH',
-        target: dishName,
-        details: `Đã từ chối món "${dishName}" khỏi hàng đợi chờ duyệt.`
-      });
+      await recordAdminAction(
+        'REJECT_DISH',
+        dishName,
+        `Đã từ chối món "${dishName}" khỏi hàng đợi chờ duyệt.`
+      );
       showToast(`Đã từ chối món "${dishName}"`, 'info');
     }
   };
@@ -205,11 +263,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         saveDishesLocally(updated);
         return updated;
       });
-      await logAdminActionCloud({
-        action: 'UPDATE_DISH',
-        target: updatedDish.name,
-        details: `Cập nhật thông tin món "${updatedDish.name}".`
-      });
+      await recordAdminAction(
+        'UPDATE_DISH',
+        updatedDish.name,
+        `Cập nhật thông tin món "${updatedDish.name}".`
+      );
       showToast(`Đã lưu thay đổi món "${updatedDish.name}"!`, 'success');
     }
   };
@@ -226,11 +284,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         saveDishesLocally(updated);
         return updated;
       });
-      await logAdminActionCloud({
-        action: 'DELETE_DISH',
-        target: dishName,
-        details: `Đã xóa món "${dishName}" khỏi hệ thống.`
-      });
+      await recordAdminAction(
+        'DELETE_DISH',
+        dishName,
+        `Đã xóa món "${dishName}" khỏi hệ thống.`
+      );
       showToast(`Đã xóa món "${dishName}" thành công!`, 'success');
     }
   };
@@ -259,11 +317,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         saveDishesLocally(updated);
         return updated;
       });
-      await logAdminActionCloud({
-        action: 'DELETE_REVIEW',
-        target: dishId,
-        details: `Đã xóa đánh giá spam (ID: ${reviewId}).`
-      });
+      await recordAdminAction(
+        'DELETE_REVIEW',
+        dishId,
+        `Đã xóa đánh giá spam (ID: ${reviewId}).`
+      );
       showToast('Đã xóa đánh giá spam thành công!', 'success');
     }
   };
@@ -272,12 +330,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleResolveReport = async (reportId: string) => {
     await resolveReportCloud(reportId);
     setReports((prev) => prev.filter((r) => r.id !== reportId));
-    await logAdminActionCloud({
-      action: 'RESOLVE_REPORT',
-      target: reportId,
-      details: `Đã giải quyết và xóa báo cáo vi phạm #${reportId}.`
-    });
+    await recordAdminAction(
+      'RESOLVE_REPORT',
+      reportId,
+      `Đã giải quyết và xóa báo cáo vi phạm #${reportId}.`
+    );
     showToast('Đã đánh dấu xử lý xong báo cáo!', 'info');
+  };
+
+  // 6b. Duyệt đề xuất quán ăn mới vào món
+  const handleApproveLocation = async (suggestion: LocationSuggestion) => {
+    const targetDish = dishes.find((d) => d.id === suggestion.dishId);
+    const existingLocations = targetDish?.locations || [];
+    const success = await approveLocationSuggestionCloud(suggestion, existingLocations);
+    if (success) {
+      const newLoc = {
+        id: `loc_${suggestion.dishId}_${Date.now()}`,
+        name: suggestion.name,
+        address: suggestion.address,
+        directionUrl: suggestion.directionUrl || ''
+      };
+      setDishes((prev) => {
+        const updated = prev.map((d) => {
+          if (d.id !== suggestion.dishId) return d;
+          const currentLocs = Array.isArray(d.locations) ? d.locations : [];
+          return {
+            ...d,
+            locations: [...currentLocs, newLoc]
+          };
+        });
+        saveDishesLocally(updated);
+        return updated;
+      });
+      setPendingLocations((prev) => prev.filter((l) => l.id !== suggestion.id));
+      await recordAdminAction(
+        'APPROVE_LOCATION',
+        suggestion.dishName,
+        `Duyệt quán "${suggestion.name}" (${suggestion.address}) vào món "${suggestion.dishName}"`
+      );
+      showToast(`Đã duyệt quán "${suggestion.name}" vào món "${suggestion.dishName}"! 🎉`, 'success');
+    }
+  };
+
+  // 6c. Từ chối đề xuất quán ăn
+  const handleRejectLocation = async (suggestionId: string, dishName: string, locName: string) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn từ chối đề xuất quán "${locName}"?`)) {
+      return;
+    }
+    const success = await rejectLocationSuggestionCloud(suggestionId, dishName, locName);
+    if (success) {
+      setPendingLocations((prev) => prev.filter((l) => l.id !== suggestionId));
+      await recordAdminAction(
+        'REJECT_LOCATION',
+        dishName,
+        `Từ chối quán "${locName}" đề xuất cho món "${dishName}"`
+      );
+      showToast(`Đã từ chối quán "${locName}"`, 'info');
+    }
   };
 
   // 7. Khôi phục thực đơn gốc
@@ -288,11 +397,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setDishes(normalized);
       saveDishesLocally(normalized);
 
-      await logAdminActionCloud({
-        action: 'RESTORE_DEFAULT_MENU',
-        target: 'shared_dishes',
-        details: `Khôi phục thực đơn dùng chung về ${defaultDishes.length} món mẫu ban đầu.`
-      });
+      await recordAdminAction(
+        'RESTORE_DEFAULT_MENU',
+        'shared_dishes',
+        `Khôi phục thực đơn dùng chung về ${defaultDishes.length} món mẫu ban đầu.`
+      );
       showToast('Đã khôi phục thực đơn chuẩn 30 món Sài Gòn thành công! 🍜', 'success');
     } catch (err) {
       console.error('Lỗi khôi phục thực đơn:', err);
@@ -311,35 +420,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     setIsTogglingKillSwitch(true);
     try {
-      await setWritesEnabledCloud(targetState);
+      const ok = await setWritesEnabledCloud(targetState);
+      if (ok) {
+        try {
+          const fresh = JSON.parse(localStorage.getItem('admin_audit_logs') || '[]');
+          setAuditLogs(fresh);
+        } catch (_) {}
+      }
     } finally {
       setIsTogglingKillSwitch(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 flex flex-col transition-colors duration-200">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 shadow-lg">
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-xs dark:shadow-lg transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-slate-800 dark:text-slate-300 dark:hover:text-white transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
               title="Quay lại ứng dụng chính"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Quay Lại</span>
             </button>
 
-            <div className="h-5 w-px bg-slate-800" />
+            <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
 
             <div className="flex items-center gap-2">
               <span className="text-xl" role="img" aria-label="Shield">🛡️</span>
               <div>
-                <h1 className="text-sm sm:text-base font-black text-white flex items-center gap-1.5">
+                <h1 className="text-sm sm:text-base font-black text-slate-900 dark:text-white flex items-center gap-1.5">
                   Bảng Điều Khiển Quản Trị
-                  <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
                     Admin 👑
                   </span>
                 </h1>
@@ -347,30 +462,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={handleToggleTheme}
+              aria-label={isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+              title={isDark ? 'Giao diện: ĐANG TỐI (Bấm để chuyển sang Sáng)' : 'Giao diện: ĐANG SÁNG (Bấm để chuyển sang Tối)'}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-slate-800 dark:text-slate-300 dark:hover:text-white transition cursor-pointer"
+            >
+              {isDark ? (
+                <Moon className="w-4 h-4 text-indigo-400" />
+              ) : (
+                <Sun className="w-4 h-4 text-amber-500" />
+              )}
+            </button>
+
             <button
               onClick={handleToggleKillSwitch}
               disabled={isTogglingKillSwitch}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer shadow-xs ${
                 writesEnabled
-                  ? 'bg-slate-900 text-slate-300 border-slate-700 hover:border-rose-500/50 hover:text-rose-300'
-                  : 'bg-rose-500/20 text-rose-300 border-rose-500/50 animate-pulse'
+                  ? 'bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-rose-500/50 hover:text-rose-600 dark:hover:text-rose-300'
+                  : 'bg-rose-500/20 text-rose-600 dark:text-rose-300 border-rose-500/50 animate-pulse'
               } disabled:opacity-50`}
               title={writesEnabled ? 'Nhấn để ngắt quyền ghi toàn hệ thống (Kill Switch)' : 'Nhấn để mở lại quyền ghi toàn hệ thống'}
             >
-              <span className={`w-2 h-2 rounded-full ${writesEnabled ? 'bg-emerald-400' : 'bg-rose-500'}`} />
-              <span>{writesEnabled ? 'Kill Switch: TẮT' : 'Kill Switch: ĐANG BẬT'}</span>
+              <span className={`w-2 h-2 rounded-full ${writesEnabled ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+              <span className="hidden xs:inline">{writesEnabled ? 'Kill Switch: TẮT' : 'Kill Switch: BẬT'}</span>
             </button>
 
-            <div className="text-xs text-slate-400 font-mono hidden md:block">
-              Phiên bản: <strong className="text-white">v1.2 Admin MVP</strong>
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-mono hidden md:block">
+              Phiên bản: <strong className="text-slate-800 dark:text-white">v1.2 Admin</strong>
             </div>
           </div>
         </div>
 
         {/* Banner Cảnh Báo Khi Kill Switch Đang Bật */}
         {!writesEnabled && (
-          <div className="bg-rose-500/15 border-t border-b border-rose-500/30 px-4 py-2.5 text-rose-300 text-xs font-medium flex items-center justify-between">
+          <div className="bg-rose-500/15 border-t border-b border-rose-500/30 px-4 py-2.5 text-rose-700 dark:text-rose-300 text-xs font-medium flex items-center justify-between">
             <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-3">
               <span className="flex items-center gap-2">
                 <span className="text-base">🚨</span>
@@ -387,13 +517,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
 
         {/* Tab Navigation Menu */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto space-x-2 py-2 border-t border-slate-900 scrollbar-none">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto space-x-2 py-2 border-t border-slate-200/80 dark:border-slate-900 scrollbar-none">
           <button
             onClick={() => setActiveTab('overview')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900'
             }`}
           >
             <LayoutDashboard className="w-3.5 h-3.5" />
@@ -405,14 +535,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
               activeTab === 'queue'
                 ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
             <span>Hàng Đợi Duyệt</span>
-            {(pendingDishes.length > 0 || reports.length > 0) && (
+            {(pendingDishes.length > 0 || reports.length > 0 || pendingLocations.length > 0) && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-950 text-amber-400 font-extrabold">
-                {pendingDishes.length + reports.length}
+                {pendingDishes.length + reports.length + pendingLocations.length}
               </span>
             )}
           </button>
@@ -422,7 +552,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
               activeTab === 'dishes'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900'
             }`}
           >
             <UtensilsCrossed className="w-3.5 h-3.5" />
@@ -434,7 +564,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
               activeTab === 'reviews'
                 ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900'
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
@@ -446,7 +576,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
               activeTab === 'backup'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900'
             }`}
           >
             <HardDriveDownload className="w-3.5 h-3.5" />
@@ -458,7 +588,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
               activeTab === 'logs'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900'
             }`}
           >
             <History className="w-3.5 h-3.5" />
@@ -473,6 +603,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <AdminOverview
             dishes={dishes}
             pendingDishes={pendingDishes}
+            pendingLocations={pendingLocations}
             reports={reports}
             onNavigateTab={(tab) => setActiveTab(tab)}
           />
@@ -482,8 +613,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <AdminQueue
             pendingDishes={pendingDishes}
             reports={reports}
+            pendingLocations={pendingLocations}
             onApproveDish={handleApproveDish}
             onRejectDish={handleRejectDish}
+            onApproveLocation={handleApproveLocation}
+            onRejectLocation={handleRejectLocation}
             onResolveReport={handleResolveReport}
             onDeleteReportedDish={(id) => handleDeleteDish(id, 'Món bị báo cáo')}
           />

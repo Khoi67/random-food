@@ -74,16 +74,18 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
       const center = size / 2;
       const radius = center - 8;
 
+      const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+
       if (slices.length === 0) {
         ctx.beginPath();
         ctx.arc(center, center, radius, 0, 2 * Math.PI);
-        ctx.fillStyle = '#1e293b';
+        ctx.fillStyle = isDarkMode ? '#1e293b' : '#f1f5f9';
         ctx.fill();
         ctx.lineWidth = 4;
-        ctx.strokeStyle = '#334155';
+        ctx.strokeStyle = isDarkMode ? '#334155' : '#cbd5e1';
         ctx.stroke();
 
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = isDarkMode ? '#94a3b8' : '#64748b';
         ctx.font = 'bold 14px "Be Vietnam Pro", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -107,7 +109,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
         ctx.fill();
 
         ctx.lineWidth = 1.5;
-        ctx.strokeStyle = '#0f172a';
+        ctx.strokeStyle = isDarkMode ? '#0f172a' : '#ffffff';
         ctx.stroke();
 
         // Favorite Glow Indicator if 2x
@@ -325,7 +327,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
         </div>
 
         {/* The Wheel Canvas */}
-        <div className="rounded-full p-2 bg-gradient-to-b from-slate-800 to-slate-950 shadow-2xl border-2 border-slate-800 flex items-center justify-center">
+        <div className="rounded-full p-2 bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-950 shadow-xl border-2 border-slate-300/80 dark:border-slate-800 flex items-center justify-center transition-colors">
           <canvas ref={canvasRef} className="rounded-full shadow-inner" />
         </div>
 
@@ -334,7 +336,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
           onClick={spin}
           disabled={isSpinning || slices.length === 0}
           aria-label="Quay vòng may mắn"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-brand-600 via-orange-500 to-amber-400 text-white font-black text-sm sm:text-base shadow-2xl border-4 border-slate-900 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center leading-tight tracking-wider"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-brand-600 via-orange-500 to-amber-400 text-white font-black text-sm sm:text-base shadow-2xl border-4 border-white dark:border-slate-900 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center leading-tight tracking-wider"
         >
           <span>QUAY</span>
           <span className="text-[10px] sm:text-xs font-semibold text-amber-100">
@@ -345,9 +347,9 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
 
       {/* Quick Tips / Hints below Wheel */}
       <div className="mt-3 w-full max-w-sm px-2 text-center">
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           {slices.length > 20 ? (
-            <span className="text-amber-300">
+            <span className="text-amber-600 dark:text-amber-300">
               ⚡ Đang có {slices.length} món trên vòng. Có thể dùng bộ lọc nhanh (Giá/Kiểu) để quay tập trung hơn!
             </span>
           ) : slices.some((s) => s.isFav) ? (

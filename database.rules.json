@@ -217,6 +217,51 @@
       }
     },
 
+    // 2.2 HÀNG ĐỢI ĐỀ XUẤT ĐỊA CHỈ QUÁN ĂN (CHỈ ADMIN MỚI ĐƯỢC ĐỌC)
+    "pending_locations": {
+      ".read": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))",
+      
+      "$suggestionId": {
+        // Khách tạo mới (!data.exists()) khi writesEnabled !== false, status = pending, createdBy = auth.uid, rate limit 60s. Admin có quyền xóa hoặc duyệt:
+        ".write": "(auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))) || (root.child('config/writesEnabled').val() !== false && auth != null && !data.exists() && newData.child('createdBy').val() === auth.uid && newData.child('status').val() === 'pending' && $suggestionId.matches(/^[A-Za-z0-9_-]{1,64}$/) && (!root.child('rate_limits').child(auth.uid).child('lastLocationAt').exists() || root.child('rate_limits').child(auth.uid).child('lastLocationAt').val() <= now - 60000))",
+        ".validate": "newData.hasChildren(['dishId', 'name', 'address', 'status', 'createdBy', 'createdAt'])",
+
+        "id": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 64 && newData.val().matches(/^[A-Za-z0-9_-]+$/))"
+        },
+        "dishId": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
+        },
+        "dishName": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 100"
+        },
+        "address": {
+          ".validate": "newData.isString() && newData.val().length >= 5 && newData.val().length <= 200"
+        },
+        "directionUrl": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 500 && (newData.val().beginsWith('https:') || newData.val().beginsWith('http:')))"
+        },
+        "note": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 300)"
+        },
+        "status": {
+          ".validate": "newData.val() === 'pending' || (auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())))"
+        },
+        "createdBy": {
+          ".validate": "newData.val() === auth.uid || (auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())))"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() >= now - 600000 && newData.val() <= now + 600000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+
     // 3. BÁO CÁO VI PHẠM (CHỐNG SỬA/XÓA CỦA NGƯỜI KHÁC, RATE LIMIT 30S)
     "reports": {
       // Chỉ Quản trị viên mới có quyền xem danh sách báo cáo:
@@ -256,9 +301,12 @@
       ".read": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))",
       
       "$logId": {
-        // APPEND-ONLY: Chỉ Admin được tạo mới (!data.exists() && newData.exists()), CẤM sửa hoặc xóa:
-        ".write": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())) && !data.exists() && newData.exists() && $logId.matches(/^[A-Za-z0-9_-]{1,64}$/)",
+        // APPEND-ONLY: Chỉ Admin được tạo mới. Cho phép dọn dẹp các log cũ hơn 3 ngày (> 259,200,000 ms):
+        ".write": "auth != null && (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val())) && ((!data.exists() && newData.exists() && $logId.matches(/^[A-Za-z0-9_-]{1,64}$/)) || (!newData.exists() && data.child('timestamp').val() <= now - 259200000))",
         ".validate": "newData.hasChildren(['action', 'timestamp', 'adminUid'])",
+        "id": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 64 && newData.val().matches(/^[A-Za-z0-9_-]+$/))"
+        },
         "action": {
           ".validate": "newData.isString() && newData.val().length <= 100"
         },
@@ -326,6 +374,10 @@
           ".validate": "newData.isNumber() && newData.val() === now"
         },
         "lastReportAt": {
+          ".write": "auth != null && (auth.uid === $uid || (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))) && newData.exists()",
+          ".validate": "newData.isNumber() && newData.val() === now"
+        },
+        "lastLocationAt": {
           ".write": "auth != null && (auth.uid === $uid || (auth.token.admin === true || (root.child('admin_config/adminUid').exists() && auth.uid === root.child('admin_config/adminUid').val()))) && newData.exists()",
           ".validate": "newData.isNumber() && newData.val() === now"
         },

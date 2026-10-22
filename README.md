@@ -1,6 +1,6 @@
 # Hôm Nay Ăn Gì Ở TP.HCM? — Vòng Quay May Mắn Ẩm Thực Sài Gòn 🍜
 
-Ứng dụng Progressive Web App (PWA) giải quyết câu hỏi muôn thuở **"Hôm nay ăn gì?"** tại Thành phố Hồ Chí Minh. Được tối ưu theo phong cách **Mobile-First**, giao diện Dark Theme hiện đại kết hợp vòng quay may mắn Canvas 2D mượt mà (60fps), bộ lọc thông minh theo bữa ăn Sài Gòn, tính năng chỉ đường quán gần tôi, lưu lịch sử ăn uống 14 ngày, đóng góp món cộng đồng và đồng bộ đám mây Realtime an toàn.
+Ứng dụng Progressive Web App (PWA) giải quyết câu hỏi muôn thuở **"Hôm nay ăn gì?"** tại Thành phố Hồ Chí Minh. Được tối ưu theo phong cách **Mobile-First & Desktop Tương Xứng**, hỗ trợ **Chuyển đổi giao diện Sáng / Tối (☀️ / 🌙)** cao cấp với màu trắng kem dịu mắt, kết hợp vòng quay may mắn Canvas 2D mượt mà (60fps), bộ lọc thông minh theo bữa ăn Sài Gòn, tính năng chỉ đường quán gần tôi qua GPS, đề xuất quán ăn cộng đồng, lưu lịch sử ăn uống 14 ngày, đóng góp món ăn và đồng bộ đám mây Realtime an toàn tuyệt đối.
 
 ---
 
@@ -8,7 +8,11 @@
 
 - **Frontend Core**: React 19, TypeScript, Canvas API (Offscreen GPU Rendering Buffer), Lucide React icons.
 - **Build Tool**: [Vite](https://vitejs.dev/) — Tối ưu hóa bundle và Hot Module Replacement (HMR) tức thì.
-- **Styling**: Tailwind CSS với bảng màu Dark Mode cao cấp (`slate-950`), đạt chuẩn tương phản tiếp cận WCAG AA.
+- **Styling & Theme**:
+  - Hỗ trợ toàn diện **Light Theme** (nền trắng kem thanh nhã, độ tương phản cao đạt chuẩn WCAG AAA, chống chói mắt) & **Dark Theme** (`slate-950` sang trọng).
+  - Tích hợp nút chuyển đổi nhanh (☀️ / 🌙) trên thanh Header trang chủ và Bảng điều khiển Quản trị (`/#/admin`).
+  - Lưu trạng thái theme vào `localStorage` kèm script inline chống nháy giao diện (Zero FOUC).
+  - Bố cục 2 cột cân xứng chuẩn xác 580px trên Desktop với thanh cuộn nội bộ mượt mà.
 - **Backend / Realtime**: [Firebase Realtime Database](https://firebase.google.com/) (Modular SDK v13) & Firebase Anonymous / Google Auth.
 - **Bảo Mật & An Ninh**:
   - OWASP Security Headers (nosniff, same-origin-allow-popups, HSTS, DENY iframe).
@@ -18,7 +22,7 @@
   - Cờ ngắt ghi khẩn cấp toàn hệ thống (**Kill Switch**) không cần redeploy.
   - Khử trùng XSS triệt để (Zero-eval, textContent DOM alerts, URL sanitizer).
 - **PWA (Progressive Web App)**: Service Worker bộ nhớ đệm Offline, Web App Manifest, hỗ trợ cài đặt lên màn hình chính (A2HS).
-- **Testing**: Node.js Native Test Runner (`node:test`, `node:assert/strict`) với hơn 170+ Unit & Full System Regression Tests.
+- **Testing**: Node.js Native Test Runner (`node:test`, `node:assert/strict`) với **184 Unit & Integration Tests** và **25 Full System Regression Tests** (100% Pass).
 
 ---
 
@@ -100,11 +104,12 @@ Dự án sử dụng bộ quy tắc bảo mật được kiểm toán nghiêm ng
 - Truy cập nhanh bằng định tuyến hash: `/#/admin` (hoặc click icon vương miện trên thanh tiêu đề khi đã đăng nhập Google bằng tài khoản quản trị).
 - **Tính năng nổi bật:**
   - **Tổng quan chỉ số**: Thống kê số lượng món ăn theo từng bữa Sáng / Trưa / Tối tại TP.HCM, số lượng đánh giá và báo cáo vi phạm.
+  - **Đồng bộ Theme Sáng/Tối**: Tích hợp nút bật tắt Theme ☀️/🌙 ngay trên Header Admin.
   - **Kill Switch trực quan**: Nút chuyển đổi trạng thái bảo trì hệ thống tức thời ngay trên thanh tiêu đề.
-  - **Hàng đợi phê duyệt**: Xem xét món mới do cộng đồng đóng góp, phê duyệt đưa vào thực đơn hoặc từ chối.
+  - **Hàng đợi phê duyệt đa tầng**: Xem xét món ăn mới và quán ăn mới do cộng đồng đóng góp (`pending_dishes` & `pending_locations`).
   - **Kiểm duyệt đánh giá & Báo cáo vi phạm**: Xóa đánh giá spam và đóng các khiếu nại của người dùng.
   - **Khôi phục thực đơn gốc**: Nút khôi phục 30 món ăn đặc sản TP.HCM chỉ bằng một cú nhấp chuột.
-  - **Nhật ký kiểm toán**: Theo dõi toàn bộ lịch sử thao tác của Admin theo thời gian thực.
+  - **Nhật ký kiểm toán**: Theo dõi toàn bộ lịch sử thao tác của Admin theo thời gian thực (Append-only).
 
 ---
 
@@ -113,13 +118,13 @@ Dự án sử dụng bộ quy tắc bảo mật được kiểm toán nghiêm ng
 Dự án áp dụng phương pháp kiểm thử tự động nghiêm ngặt không dùng công cụ giả lập không chính thống:
 
 ```bash
-# Kiểm thử toàn diện mọi kịch bản (178/178 tests)
+# Kiểm thử toàn diện mọi kịch bản (184/184 tests PASS)
 cmd.exe /c "npm test"
 
-# Kiểm thử hồi quy hệ thống (Full System Regression Suite)
+# Kiểm thử hồi quy hệ thống (Full System Regression Suite - 25/25 tests PASS)
 cmd.exe /c "npm run test:regression"
 
-# Kiểm tra kiểu TypeScript (Strict Mode)
+# Kiểm tra kiểu TypeScript (Strict Mode - 0 errors)
 cmd.exe /c "npx tsc --noEmit"
 
 # Kiểm tra quá trình đóng gói production

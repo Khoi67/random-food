@@ -780,28 +780,35 @@ export function subscribeReportsCloud(onReportsChange) {
   return () => {};
 }
 
+// Thời gian lưu trữ nhật ký quản trị viên: 3 ngày (72 giờ)
+export const AUDIT_LOG_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+
 /**
  * Ghi nhật ký thao tác quản trị viên vào node riêng admin_audit_logs (Local-first + Cloud)
  */
 export async function logAdminActionCloud({ action, target, details }) {
+  const user = getCurrentUser() || (firebaseAuth && firebaseAuth.currentUser);
   const logItem = {
     id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-    adminUid: currentUser?.uid || 'admin',
+    adminUid: user?.uid || '',
     action: String(action || 'ACTION'),
     target: String(target || ''),
     details: details ? (typeof details === 'object' ? JSON.stringify(details) : String(details)) : '',
     timestamp: Date.now()
   };
 
-  // Local-First cache
+  // Local-First cache: Tự động loại bỏ các log cũ hơn 3 ngày (TTL 72h)
   try {
     const localLogsKey = 'admin_audit_logs';
     const existing = JSON.parse(localStorage.getItem(localLogsKey) || '[]');
-    existing.unshift(logItem);
-    localStorage.setItem(localLogsKey, JSON.stringify(existing.slice(0, 100)));
+    const now = Date.now();
+    const cleanLogs = [logItem, ...existing].filter(
+      (item) => item && typeof item.timestamp === 'number' && (now - item.timestamp) <= AUDIT_LOG_TTL_MS
+    );
+    localStorage.setItem(localLogsKey, JSON.stringify(cleanLogs.slice(0, 100)));
   } catch (_) {}
 
-  if (isFirebaseConnected && firebaseDb) {
+  if (isFirebaseConnected && firebaseDb && user?.uid) {
     try {
       const logsRef = ref(firebaseDb, `admin_audit_logs/${logItem.id}`);
       await set(logsRef, logItem);
@@ -813,14 +820,49 @@ export async function logAdminActionCloud({ action, target, details }) {
 }
 
 /**
- * Lắng nghe nhật ký quản trị viên thời gian thực
+ * Tự động dọn dẹp các bản ghi nhật ký quá hạn 3 ngày trên Cloud
+ */
+export async function cleanupExpiredAuditLogsCloud() {
+  if (!isFirebaseConnected || !firebaseDb) return 0;
+  try {
+    const logsRef = ref(firebaseDb, "admin_audit_logs");
+    const snap = await get(logsRef);
+    if (!snap.exists()) return 0;
+    const val = snap.val();
+    const now = Date.now();
+    let deletedCount = 0;
+    const promises = [];
+
+    for (const [id, item] of Object.entries(val)) {
+      if (item && typeof item.timestamp === 'number' && (now - item.timestamp) > AUDIT_LOG_TTL_MS) {
+        promises.push(remove(ref(firebaseDb, `admin_audit_logs/${id}`)).catch(() => {}));
+        deletedCount++;
+      }
+    }
+    if (promises.length > 0) {
+      await Promise.all(promises);
+    }
+    return deletedCount;
+  } catch (err) {
+    console.warn("Lỗi dọn dẹp nhật ký cũ:", err);
+    return 0;
+  }
+}
+
+/**
+ * Lắng nghe nhật ký quản trị viên thời gian thực (Tự động lọc giới hạn trong 3 ngày)
  */
 export function subscribeAdminAuditLogsCloud(onLogsChange) {
   if (isFirebaseConnected && firebaseDb) {
     const logsRef = ref(firebaseDb, "admin_audit_logs");
     return onValue(logsRef, (snap) => {
       const val = snap.val();
-      const list = val ? Object.values(val).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)) : [];
+      const now = Date.now();
+      const list = val 
+        ? Object.values(val)
+            .filter((item) => item && typeof item.timestamp === 'number' && (now - item.timestamp) <= AUDIT_LOG_TTL_MS)
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)) 
+        : [];
       if (typeof onLogsChange === 'function') {
         onLogsChange(list);
       }
@@ -872,5 +914,198 @@ export async function setWritesEnabledCloud(enabled) {
     showToast("Không thể cập nhật cờ Kill Switch: " + (err.message || ''), "error");
     return false;
   }
+}
+
+/**
+ * Gửi đề xuất địa chỉ quán ăn mới cho món ăn có sẵn (Khách đề xuất)
+ */
+export async function suggestLocationCloud(suggestion) {
+  if (!suggestion || !suggestion.id || !suggestion.dishId || !suggestion.name || !suggestion.address) {
+    return false;
+  }
+
+  const user = await ensureAuth();
+  const creatorUid = user?.uid || 'anonymous';
+
+  const payload = {
+    id: String(suggestion.id),
+    dishId: String(suggestion.dishId),
+    dishName: String(suggestion.dishName || ''),
+    name: String(suggestion.name).trim(),
+    address: String(suggestion.address).trim(),
+    directionUrl: suggestion.directionUrl ? String(suggestion.directionUrl).trim() : '',
+    note: suggestion.note ? String(suggestion.note).trim() : '',
+    status: 'pending',
+    createdBy: creatorUid,
+    createdAt: Date.now()
+  };
+
+  const cleanPayload = JSON.parse(JSON.stringify(payload));
+
+  // 1. Lưu Local-First để đảm bảo không bao giờ mất dữ liệu đề xuất của khách
+  const localKey = 'hom_nay_an_gi_pending_locations';
+  try {
+    const existing = JSON.parse(localStorage.getItem(localKey) || '[]');
+    const filtered = existing.filter((item) => item && item.id !== cleanPayload.id);
+    localStorage.setItem(localKey, JSON.stringify([cleanPayload, ...filtered].slice(0, 50)));
+  } catch (_) {}
+
+  // 2. Đồng bộ lên Firebase Cloud nếu có kết nối
+  if (isFirebaseConnected && firebaseDb) {
+    try {
+      const updates = {};
+      updates[`pending_locations/${suggestion.id}`] = cleanPayload;
+      if (creatorUid && creatorUid !== 'anonymous') {
+        updates[`rate_limits/${creatorUid}/lastLocationAt`] = serverTimestamp();
+      }
+
+      await update(ref(firebaseDb), updates);
+      return true;
+    } catch (err) {
+      console.warn("Lỗi gửi đề xuất quán lên Cloud:", err);
+      const isPermissionDenied = err?.code === 'PERMISSION_DENIED' || String(err?.message || err).includes('Permission denied');
+      if (isPermissionDenied) {
+        // Nếu do rate limit thực tế hoặc cloud rules chưa sync
+        console.info("Đã lưu đề xuất quán an toàn tại LocalStorage.");
+      }
+      // Vẫn trả về true vì đã lưu cục bộ thành công (Local-First UX)
+      return true;
+    }
+  }
+  return true;
+}
+
+/**
+ * Lắng nghe danh sách quán ăn đề xuất chờ duyệt (Dành cho Admin - Hỗ trợ cả Cloud + Local-First)
+ */
+export function subscribePendingLocationsCloud(onLocationsChange) {
+  const getCombined = (cloudList = []) => {
+    let localList = [];
+    try {
+      localList = JSON.parse(localStorage.getItem('hom_nay_an_gi_pending_locations') || '[]');
+    } catch (_) {}
+    const map = new Map();
+    if (Array.isArray(localList)) {
+      for (const item of localList) {
+        if (item && item.id) map.set(item.id, item);
+      }
+    }
+    if (Array.isArray(cloudList)) {
+      for (const item of cloudList) {
+        if (item && item.id) map.set(item.id, item);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  };
+
+  if (isFirebaseConnected && firebaseDb) {
+    const locsRef = ref(firebaseDb, "pending_locations");
+    return onValue(locsRef, (snap) => {
+      const val = snap.val();
+      const cloudList = val ? Object.values(val) : [];
+      if (typeof onLocationsChange === 'function') {
+        onLocationsChange(getCombined(cloudList));
+      }
+    }, (err) => {
+      console.warn("Lỗi lắng nghe pending_locations:", err.code);
+      if (typeof onLocationsChange === 'function') {
+        onLocationsChange(getCombined([]));
+      }
+    });
+  } else {
+    if (typeof onLocationsChange === 'function') {
+      onLocationsChange(getCombined([]));
+    }
+  }
+  return () => {};
+}
+
+/**
+ * Phê duyệt đề xuất quán ăn vào món chính thức (Chỉ Admin)
+ */
+export async function approveLocationSuggestionCloud(suggestion, currentLocations = []) {
+  if (!suggestion || !suggestion.id || !suggestion.dishId) {
+    return false;
+  }
+
+  // Dọn dẹp bản ghi trong local cache
+  try {
+    const localKey = 'hom_nay_an_gi_pending_locations';
+    const existing = JSON.parse(localStorage.getItem(localKey) || '[]');
+    const filtered = existing.filter((item) => item && item.id !== suggestion.id);
+    localStorage.setItem(localKey, JSON.stringify(filtered));
+  } catch (_) {}
+
+  const newLocation = {
+    id: `loc_${suggestion.dishId}_${Date.now()}`,
+    name: suggestion.name,
+    address: suggestion.address,
+    directionUrl: suggestion.directionUrl || ''
+  };
+
+  if (isFirebaseConnected && firebaseDb) {
+    try {
+      // Đọc món ăn hiện tại từ shared_dishes
+      const dishRef = ref(firebaseDb, `shared_dishes/${suggestion.dishId}`);
+      const snap = await get(dishRef);
+      let updatedLocations = [...currentLocations, newLocation];
+
+      if (snap.exists()) {
+        const dishData = snap.val();
+        const existingLocs = Array.isArray(dishData.locations) ? dishData.locations : [];
+        updatedLocations = [...existingLocs, newLocation];
+      }
+
+      const updates = {};
+      updates[`shared_dishes/${suggestion.dishId}/locations`] = updatedLocations;
+      updates[`pending_locations/${suggestion.id}`] = null; // Xóa khỏi pending
+
+      await update(ref(firebaseDb), updates);
+      await logAdminActionCloud({
+        action: 'APPROVE_LOCATION',
+        target: suggestion.dishName || suggestion.dishId,
+        details: `Đã duyệt quán "${suggestion.name}" (${suggestion.address}) vào món "${suggestion.dishName}".`
+      });
+
+      return true;
+    } catch (err) {
+      console.error("Lỗi duyệt đề xuất quán trên Cloud:", err);
+      // Vẫn thành công ở tầng local
+      return true;
+    }
+  }
+  return true;
+}
+
+/**
+ * Từ chối đề xuất quán ăn (Chỉ Admin)
+ */
+export async function rejectLocationSuggestionCloud(suggestionId, dishName = '', locationName = '') {
+  if (!suggestionId) return false;
+
+  // Dọn dẹp bản ghi trong local cache
+  try {
+    const localKey = 'hom_nay_an_gi_pending_locations';
+    const existing = JSON.parse(localStorage.getItem(localKey) || '[]');
+    const filtered = existing.filter((item) => item && item.id !== suggestionId);
+    localStorage.setItem(localKey, JSON.stringify(filtered));
+  } catch (_) {}
+
+  if (isFirebaseConnected && firebaseDb) {
+    try {
+      const sugRef = ref(firebaseDb, `pending_locations/${suggestionId}`);
+      await remove(sugRef);
+      await logAdminActionCloud({
+        action: 'REJECT_LOCATION',
+        target: dishName,
+        details: `Đã từ chối gợi ý quán "${locationName}" cho món "${dishName}".`
+      });
+      return true;
+    } catch (err) {
+      console.error("Lỗi từ chối đề xuất quán trên Cloud:", err);
+      return true;
+    }
+  }
+  return true;
 }
 

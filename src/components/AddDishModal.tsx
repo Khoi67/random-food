@@ -149,22 +149,28 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-slate-800 dark:text-slate-100 transition-colors"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
           <div>
-            <h2 className="text-lg font-black text-white flex items-center gap-2">
+            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
               <span>+ Thêm Món Ăn Mới</span>
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Món mới sẽ được hiển thị ngay trên vòng quay
             </p>
           </div>
           <button
             onClick={onClose}
             aria-label="Đóng form"
-            className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+            className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -186,8 +192,8 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
 
           {/* Tên món */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 mb-1">
-              Tên món ăn <span className="text-rose-400">*</span>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Tên món ăn <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
@@ -195,17 +201,17 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="VD: Cơm tấm Ba Ghiền, Bánh canh cua..."
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-brand-500 focus:outline-none text-xs text-white placeholder-slate-500 transition"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 focus:outline-none text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition"
             />
           </div>
 
           {/* Tên rút gọn */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-bold text-slate-300">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 Tên hiển thị trên vòng quay (Rút gọn)
               </label>
-              <span className="text-[10px] text-slate-500">Tùy chọn</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">Tùy chọn</span>
             </div>
             <input
               type="text"
@@ -213,14 +219,14 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
               value={shortName}
               onChange={(e) => setShortName(e.target.value)}
               placeholder="VD: Cơm tấm, Hủ tiếu..."
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-brand-500 focus:outline-none text-xs text-white placeholder-slate-500 transition"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-brand-500 focus:outline-none text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition"
             />
           </div>
 
           {/* Bữa ăn */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 mb-1.5">
-              Phù hợp cho bữa ăn nào? <span className="text-rose-400">*</span>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Phù hợp cho bữa ăn nào? <span className="text-rose-500">*</span>
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
@@ -236,8 +242,8 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
                     onClick={() => handleMealToggle(m.key as MealType)}
                     className={`py-2 px-2 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
                       checked
-                        ? 'bg-brand-500/20 text-brand-300 border-brand-500/50'
-                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
+                        ? 'bg-brand-500 text-white border-brand-500 shadow-xs dark:bg-brand-500/20 dark:text-brand-300 dark:border-brand-500/50'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200 dark:bg-slate-950 dark:text-slate-400 dark:border-slate-800 dark:hover:border-slate-700'
                     }`}
                   >
                     <span>{m.label}</span>
@@ -251,13 +257,13 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             {/* Giá */}
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                 Khoảng giá
               </label>
               <select
                 value={priceRange}
                 onChange={(e) => setPriceRange(e.target.value as PriceRange)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500 cursor-pointer"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-500 cursor-pointer"
               >
                 <option value="under50">Dưới 50.000đ</option>
                 <option value="50to100">50.000đ - 100.000đ</option>
@@ -267,13 +273,13 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
 
             {/* Kiểu món */}
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                 Kiểu món
               </label>
               <select
                 value={dishType}
                 onChange={(e) => setDishType(e.target.value as DishType)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500 cursor-pointer"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-500 cursor-pointer"
               >
                 <option value="kho">🥢 Món Khô</option>
                 <option value="nuoc">🍜 Món Nước</option>
@@ -282,8 +288,8 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
           </div>
 
           {/* Món chay */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800">
-            <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <span>🌱</span>
               <span>Đây là món chay</span>
             </span>
@@ -298,13 +304,13 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
           {/* Địa chỉ quán ăn */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-300">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 Địa chỉ quán ngon gợi ý (Google Maps)
               </label>
               <button
                 type="button"
                 onClick={handleAddLocationField}
-                className="text-[11px] font-bold text-brand-400 hover:text-brand-300 flex items-center gap-1 cursor-pointer"
+                className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3 h-3" />
                 <span>Thêm quán</span>
@@ -319,20 +325,20 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
                     value={loc.name}
                     onChange={(e) => handleLocationChange(idx, 'name', e.target.value)}
                     placeholder="Tên quán (VD: Quán A)"
-                    className="w-1/3 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                    className="w-1/3 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500"
                   />
                   <input
                     type="text"
                     value={loc.address}
                     onChange={(e) => handleLocationChange(idx, 'address', e.target.value)}
                     placeholder="Địa chỉ / Quận (VD: 84 Đặng Văn Ngữ, Q. Phú Nhuận)"
-                    className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                    className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500"
                   />
                   {locations.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveLocationField(idx)}
-                      className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
+                      className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-500 dark:hover:text-rose-400 dark:hover:bg-rose-500/10 transition cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -343,7 +349,7 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
           </div>
 
           {/* Submit Button */}
-          <div className="pt-3 border-t border-slate-800">
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
             <button
               type="submit"
               className="w-full py-3 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 text-white font-black text-sm shadow-lg shadow-brand-500/25 active:scale-[0.99] transition cursor-pointer"

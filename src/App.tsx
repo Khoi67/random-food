@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Dish, MealType, FilterState, ReviewItem, ReportItem } from './types/index.js';
+import { Dish, MealType, FilterState, ReviewItem, ReportItem, LocationSuggestion } from './types/index.js';
 import { DEFAULT_DISHES_HCM } from './data/defaultDishes.js';
 import {
   loadDishesFromLocal,
@@ -15,6 +15,7 @@ import {
   approveDishCloud,
   subscribePendingDishesCloud,
   subscribeReportsCloud,
+  subscribePendingLocationsCloud,
   subscribeConfigCloud,
   getCurrentUser,
   isCurrentUserAdmin,
@@ -45,6 +46,7 @@ import { AddDishModal } from './components/AddDishModal';
 import { HistoryModal } from './components/HistoryModal';
 import { ReviewModal } from './components/ReviewModal';
 import { AdminModal } from './components/AdminModal';
+import { SuggestLocationModal } from './components/SuggestLocationModal';
 
 // Tối ưu hóa hiệu năng: Tải lười (Lazy-load) Bảng Điều Khiển Quản Trị để giảm kích thước bundle của người dùng thường
 const AdminDashboard = React.lazy(() =>
@@ -88,10 +90,13 @@ export const App: React.FC = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [suggestLocationDish, setSuggestLocationDish] = useState<Dish | null>(null);
+  const [isSuggestLocationOpen, setIsSuggestLocationOpen] = useState(false);
 
   // Status state
   const [isAdmin, setIsAdmin] = useState(false);
   const [reportsCount, setReportsCount] = useState(0);
+  const [pendingLocationsCount, setPendingLocationsCount] = useState(0);
   const [writesEnabled, setWritesEnabled] = useState<boolean>(true);
   const [cloudStatus, setCloudStatus] = useState<'connected' | 'connecting' | 'offline'>('offline');
   const [historyCount, setHistoryCount] = useState<number>(() => getSpinHistory().length);
@@ -106,17 +111,22 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Lắng nghe số lượng báo cáo vi phạm thời gian thực khi có quyền Admin
+  // Lắng nghe số lượng báo cáo vi phạm & quán đề xuất thời gian thực khi có quyền Admin
   useEffect(() => {
     if (isAdmin) {
-      const unsub = subscribeReportsCloud((cloudReports: ReportItem[]) => {
+      const unsubReports = subscribeReportsCloud((cloudReports: ReportItem[]) => {
         setReportsCount(Array.isArray(cloudReports) ? cloudReports.length : 0);
       });
+      const unsubLocations = subscribePendingLocationsCloud((cloudLocs: LocationSuggestion[]) => {
+        setPendingLocationsCount(Array.isArray(cloudLocs) ? cloudLocs.length : 0);
+      });
       return () => {
-        if (typeof unsub === 'function') unsub();
+        if (typeof unsubReports === 'function') unsubReports();
+        if (typeof unsubLocations === 'function') unsubLocations();
       };
     } else {
       setReportsCount(0);
+      setPendingLocationsCount(0);
     }
   }, [isAdmin]);
 
@@ -522,10 +532,10 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white pb-12">
+    <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white pb-12 transition-colors duration-200">
       {/* Banner Bảo Trì Toàn Hệ Thống Khi Kill Switch Bật */}
       {!writesEnabled && (
-        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-300 text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2">
+        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2">
           <span>⚠️ <strong>Thông báo bảo trì:</strong> Hệ thống đang tạm thời ngừng tiếp nhận món ăn và đánh giá mới. Bạn vẫn có thể quay và xem quán bình thường.</span>
         </div>
       )}
@@ -542,6 +552,7 @@ export const App: React.FC = () => {
         cloudStatus={cloudStatus}
         isAdmin={isAdmin}
         pendingDishes={pendingDishes}
+        pendingLocationsCount={pendingLocationsCount}
         reportsCount={reportsCount}
         onApproveDish={handleApproveDish}
       />
@@ -568,7 +579,7 @@ export const App: React.FC = () => {
         {/* Core Layout: 2 Columns on Desktop, Stacked on Mobile */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column: Center Wheel & Big Button (7 cols) */}
-          <section className="lg:col-span-7 flex flex-col items-center justify-center bg-slate-900/40 rounded-3xl border border-slate-800/80 p-4 sm:p-6 shadow-xl backdrop-blur-sm">
+          <section className="lg:col-span-7 flex flex-col items-center justify-center bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-4 sm:p-6 shadow-md dark:shadow-xl backdrop-blur-sm lg:h-[580px]">
             <WheelCanvas
               dishes={activeDishes}
               isFavoriteFn={checkIsFavorite}
@@ -578,7 +589,7 @@ export const App: React.FC = () => {
           </section>
 
           {/* Right Column: Dish List & Management (5 cols) */}
-          <section className="lg:col-span-5 h-full">
+          <section className="lg:col-span-5 lg:h-[580px] flex flex-col min-h-0">
             <DishList
               currentMeal={currentMeal}
               dishes={listDishes}
@@ -588,6 +599,10 @@ export const App: React.FC = () => {
               isFavoriteFn={checkIsFavorite}
               onToggleFavorite={handleToggleFavorite}
               onOpenAddModal={() => setIsAddOpen(true)}
+              onOpenSuggestLocationModal={() => {
+                setSuggestLocationDish(null);
+                setIsSuggestLocationOpen(true);
+              }}
               onOpenReviewModal={(dish) => setSelectedDishDetail(dish)}
               onDeleteDish={handleDeleteDish}
               onSelectDish={(dish) => setSelectedDishDetail(dish)}
@@ -617,6 +632,10 @@ export const App: React.FC = () => {
           setReviewDish(dish);
           setReviewLocationIndex(locIdx ?? null);
         }}
+        onOpenSuggestLocation={(d) => {
+          setSuggestLocationDish(d);
+          setIsSuggestLocationOpen(true);
+        }}
       />
 
       {/* 1b. Store Info / Detail Modal (from clicking Dish in list) */}
@@ -631,6 +650,21 @@ export const App: React.FC = () => {
         onOpenReviews={(dish, locIdx) => {
           setReviewDish(dish);
           setReviewLocationIndex(locIdx ?? null);
+        }}
+        onOpenSuggestLocation={(d) => {
+          setSuggestLocationDish(d);
+          setIsSuggestLocationOpen(true);
+        }}
+      />
+
+      {/* 1c. Suggest Location Modal */}
+      <SuggestLocationModal
+        isOpen={isSuggestLocationOpen}
+        dish={suggestLocationDish}
+        dishes={dishes}
+        onClose={() => {
+          setIsSuggestLocationOpen(false);
+          setSuggestLocationDish(null);
         }}
       />
 

@@ -85,3 +85,16 @@ export interface AdminAuditLogItem {
   timestamp: number;
 }
 
+export interface LocationSuggestion {
+  id: string;
+  dishId: string;
+  dishName: string;
+  name: string;
+  address: string;
+  directionUrl?: string;
+  note?: string;
+  createdBy: string;
+  createdAt: number;
+  status: 'pending' | 'approved' | 'rejected';
+}
+

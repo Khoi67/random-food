@@ -95,24 +95,30 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-slate-800 dark:text-slate-100 transition-colors"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-start justify-between pb-3 border-b border-slate-800 gap-3">
+        <div className="flex items-start justify-between pb-3 border-b border-slate-200 dark:border-slate-800 gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2 truncate">
-              <Star className="w-5 h-5 fill-amber-400 text-amber-400 flex-shrink-0" />
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 truncate">
+              <Star className="w-5 h-5 fill-amber-400 text-amber-500 dark:text-amber-400 flex-shrink-0" />
               <span className="truncate">
                 {targetLocation ? targetLocation.name : `Đánh Giá: ${dish.name}`}
               </span>
             </h2>
             {targetLocation && (
-              <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-300">
-                <MapPin className="w-3.5 h-3.5 text-brand-400 flex-shrink-0" />
+              <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                <MapPin className="w-3.5 h-3.5 text-brand-500 dark:text-brand-400 flex-shrink-0" />
                 <span className="truncate">{targetLocation.address}</span>
               </div>
             )}
-            <p className="text-[11px] text-slate-400 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               {isPending
                 ? 'Món ăn đang chờ Admin duyệt — tính năng đánh giá tạm thời khóa.'
                 : reviews.length > 0
@@ -136,7 +142,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             <button
               onClick={onClose}
               aria-label="Đóng cửa sổ"
-              className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -146,13 +152,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         {/* Existing Reviews List */}
         <div className="flex-1 overflow-y-auto space-y-2.5 py-3 pr-1 min-h-[160px] max-h-[260px]">
           {reviews.length === 0 ? (
-            <div className="py-8 text-center text-slate-400 text-xs">
-              <p className="text-slate-300 font-medium">
+            <div className="py-8 text-center text-slate-500 dark:text-slate-400 text-xs">
+              <p className="text-slate-700 dark:text-slate-300 font-medium">
                 {targetLocation
                   ? `Chưa có bình luận nào cho quán "${targetLocation.name}".`
                   : 'Chưa có bình luận nào cho món này.'}
               </p>
-              <p className="text-slate-500 mt-1">Gửi đánh giá bên dưới để chia sẻ cảm nhận của bạn!</p>
+              <p className="text-slate-400 dark:text-slate-500 mt-1">Gửi đánh giá bên dưới để chia sẻ cảm nhận của bạn!</p>
             </div>
           ) : (
             reviews.map((rev) => {
@@ -166,20 +172,20 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               return (
                 <div
                   key={rev.id}
-                  className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-1"
+                  className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-1"
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-white">{rev.author}</span>
-                    <div className="flex items-center text-amber-400">
+                    <span className="font-bold text-slate-900 dark:text-white">{rev.author}</span>
+                    <div className="flex items-center text-amber-500 dark:text-amber-400">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <span key={s} className="text-xs">
                           {s <= rev.stars ? '★' : '☆'}
                         </span>
                       ))}
-                      <span className="text-[10px] text-slate-500 ml-2">{dateStr}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-2">{dateStr}</span>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">{rev.comment}</p>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{rev.comment}</p>
                 </div>
               );
             })
@@ -188,16 +194,16 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
         {/* Submit New Review Form */}
         {isPending ? (
-          <div className="pt-3 border-t border-slate-800 text-center py-4 px-3 bg-amber-500/10 rounded-2xl border border-amber-500/20">
-            <p className="text-xs text-amber-300 font-semibold">
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-800 text-center py-4 px-3 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+            <p className="text-xs text-amber-700 dark:text-amber-300 font-semibold">
               ⏳ Món ăn đang chờ Admin phê duyệt
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Bạn chỉ có thể gửi nhận xét và chấm sao sau khi món ăn được Quản trị viên phê duyệt chính thức.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="pt-3 border-t border-slate-800 space-y-3">
+          <form onSubmit={handleSubmit} className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
             {/* Honeypot field - ẩn với người dùng, bẫy spam bot */}
             <div style={{ display: 'none' }} aria-hidden="true">
               <input
@@ -211,7 +217,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-300">Đánh giá của bạn:</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Đánh giá của bạn:</span>
               {/* Interactive Stars */}
               <div className="flex items-center space-x-1">
                 {[1, 2, 3, 4, 5].map((s) => (
@@ -225,7 +231,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                   >
                     <span
                       className={
-                        (hoverStars || stars) >= s ? 'text-amber-400' : 'text-slate-600'
+                        (hoverStars || stars) >= s ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'
                       }
                     >
                       ★
@@ -241,7 +247,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
                 placeholder="Tên bạn (tùy chọn)"
-                className="col-span-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                className="col-span-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-400"
               />
               <input
                 type="text"
@@ -249,7 +255,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Nhận xét quán ngon, hương vị món ăn..."
-                className="col-span-2 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                className="col-span-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-400"
               />
             </div>
 

@@ -64,23 +64,29 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl flex flex-col">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-lg max-h-[90vh] overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col text-slate-800 dark:text-slate-100 transition-colors"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800 flex-shrink-0">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
           <div className="min-w-0 pr-2">
-            <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
               <span className="truncate">Quản Trị Viên (Admin)</span>
             </h2>
-            <p className="text-[11px] text-slate-400 truncate">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
               {isAdmin ? 'Đang hoạt động với quyền Admin 🔓' : 'Đăng nhập Google tài khoản Admin để mở khóa 🔒'}
             </p>
           </div>
           <button
             onClick={onClose}
             aria-label="Đóng cửa sổ"
-            className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer flex-shrink-0"
+            className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white transition cursor-pointer flex-shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -88,20 +94,20 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
         {/* Admin Navigation Tabs */}
         {isAdmin && (
-          <div className="flex items-center border-b border-slate-800/80 px-4 pt-2 bg-slate-950/40 flex-shrink-0 gap-2">
+          <div className="flex items-center border-b border-slate-200 dark:border-slate-800/80 px-4 pt-2 bg-slate-50 dark:bg-slate-950/40 flex-shrink-0 gap-2">
             <button
               type="button"
               onClick={() => setActiveTab('pending')}
               className={`py-2 px-3 text-xs font-bold rounded-t-xl transition cursor-pointer flex items-center gap-1.5 border-b-2 ${
                 activeTab === 'pending'
-                  ? 'border-amber-400 text-amber-300 bg-slate-800/60'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
+                  ? 'border-brand-500 text-brand-600 dark:text-brand-400 bg-slate-100 dark:bg-slate-800/60'
+                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
               <span>Duyệt món chờ</span>
               {pendingDishes.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-extrabold animate-pulse">
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 text-[10px] font-extrabold animate-pulse">
                   {pendingDishes.length}
                 </span>
               )}
@@ -111,8 +117,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               onClick={() => setActiveTab('settings')}
               className={`py-2 px-3 text-xs font-bold rounded-t-xl transition cursor-pointer flex items-center gap-1.5 border-b-2 ${
                 activeTab === 'settings'
-                  ? 'border-emerald-400 text-emerald-300 bg-slate-800/60'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
+                  ? 'border-emerald-500 text-emerald-600 dark:text-emerald-300 bg-slate-100 dark:bg-slate-800/60'
+                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
               <span>⚙️ Cài đặt & Dữ liệu</span>
@@ -128,7 +134,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleLoading}
-                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-60 text-slate-900 font-bold text-xs flex items-center justify-center space-x-2.5 shadow-md transition cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 dark:bg-white dark:hover:bg-slate-100 dark:border-transparent disabled:opacity-60 text-slate-900 font-bold text-xs flex items-center justify-center space-x-2.5 shadow-xs transition cursor-pointer"
               >
                 <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -139,21 +145,21 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 <span>{isGoogleLoading ? 'Đang kết nối Google...' : 'Đăng nhập bằng Google Admin'}</span>
               </button>
 
-              <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-400 space-y-2">
+              <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 space-y-2">
                 {currentUser && !currentUser.isAnonymous ? (
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate">Trạng thái tài khoản:</span>
-                    <span className={`font-semibold text-right truncate ${isAdmin ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <span className={`font-semibold text-right truncate ${isAdmin ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                       {isAdmin ? 'Quản trị viên đã xác thực 👑' : 'Chưa được cấp quyền Admin ❌'}
                     </span>
                   </div>
                 ) : (
-                  <p className="text-slate-300 text-xs flex items-center gap-1.5">
+                  <p className="text-slate-700 dark:text-slate-300 text-xs flex items-center gap-1.5">
                     <span>🛡️</span>
                     <span>Xác thực an toàn qua Google Sign-In</span>
                   </p>
                 )}
-                <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-800/60 leading-relaxed">
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200 dark:border-slate-800/60 leading-relaxed">
                   Chỉ tài khoản Google quản trị viên được phân quyền mới có thể xóa món, duyệt đề xuất hoặc khôi phục dữ liệu gốc.
                 </p>
               </div>

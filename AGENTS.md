@@ -13,14 +13,18 @@
 3. **CẤM làm lộ thông tin nhạy cảm**: Không in email cá nhân, biến `ADMIN_EMAIL` hay khóa bí mật ra UI text, Toast alert, Console log hay payload API. Client chỉ xử lý mã băm SHA-256 (`adminEmailHash`).
 4. **CẤM ghi đè node gốc `shared_dishes` khi thêm món lẻ**: Thêm món dùng `addDishCloud(dish)` (`shared_dishes/${dish.id}`); xóa món dùng `deleteDishCloud(dishId)`. Ghi đè toàn bộ sẽ bị Firebase chặn `Permission Denied`.
 5. **CẤM tự ý seed dữ liệu lên Cloud**: Khi Cloud rỗng, khách mở web chỉ xem dữ liệu mẫu cục bộ (chế độ chỉ đọc). Chỉ Admin đã xác thực Google mới có quyền khôi phục dữ liệu lên Cloud.
-6. **CẤM tự ý thay đổi chức năng hoặc luồng nghiệp vụ hiện có**:
-   - Nghiêm cấm mọi hành vi tự ý sửa đổi, thêm bớt, gỡ bỏ hoặc làm sai lệch hành vi của bất kỳ tính năng nào đã hoàn thiện (Vòng quay Canvas 60fps, bộ lọc Sáng/Trưa/Tối, lọc giá, lọc chay, lọc nước/khô, hàng đợi duyệt món `pending_dishes`, cờ ngắt ghi khẩn cấp Kill Switch `writesEnabled`, cơ chế Local-First, bảo mật headers, khử trùng XSS, Bảng điều khiển Quản trị `/#/admin`...) nếu **KHÔNG có yêu cầu hoặc xác nhận rõ ràng bằng lệnh trực tiếp từ người dùng trong chat**.
+6. **CẤM tự ý thay đổi chức năng hoặc luồng nghiệp vụ hiện có (Nguyên tắc Zero Regression)**:
+   - Nghiêm cấm mọi hành vi tự ý sửa đổi, thêm bớt, gỡ bỏ hoặc làm sai lệch hành vi của bất kỳ tính năng nào đã hoàn thiện (Vòng quay Canvas 60fps, popup xem chi tiết món ăn, bộ lọc Sáng/Trưa/Tối, lọc giá, lọc chay, lọc nước/khô, hàng đợi duyệt món `pending_dishes`, cờ ngắt ghi khẩn cấp Kill Switch `writesEnabled`, cơ chế Local-First, bảo mật headers, khử trùng XSS, Bảng điều khiển Quản trị `/#/admin`...) nếu **KHÔNG có yêu cầu hoặc xác nhận rõ ràng bằng lệnh trực tiếp từ người dùng trong chat**.
    - Mọi hoạt động Clean Code / Refactoring bắt buộc phải bảo toàn 100% chức năng hiện có và vượt qua toàn bộ bộ kiểm thử hồi quy hệ thống (`npm run test:regression`).
+7. **CẤM tự ý sửa code khi đề xuất cải tiến/bổ sung mới**:
+   - Khi phát hiện cơ hội tối ưu, cải tiến tính năng hoặc bổ sung giải pháp kỹ thuật mới, agent **KHÔNG ĐƯỢC tự ý chỉnh sửa code ngay**.
+   - Bắt buộc phải **tóm tắt rõ ràng**: (1) Dự kiến sửa những file/hàm nào, (2) Tác dụng và giá trị mang lại là gì, (3) Tác động tới luồng hiện tại ra sao; sau đó **DỪNG LẠI CHỜ NGƯỜI DÙNG XÁC NHẬN** thì mới được phép bắt tay vào sửa code.
 
 ---
 
 ## 3. Các Việc Bắt Buộc Phải Hỏi Trước (Ask Before Action)
 Phải hỏi và nhận được xác nhận từ người dùng trước khi thực hiện các hành động sau:
+- Mọi cải tiến, tối ưu hóa hoặc bổ sung mới: Phải tóm tắt nội dung sửa, tác dụng và xin xác nhận trước khi sửa code.
 - Mọi thao tác Git phá hủy: `filter-branch`, `filter-repo`, `rebase`, `reset --hard`, `force push`, xóa nhánh/tag.
 - Mọi thao tác ghi lên dữ liệu Firebase PRODUCTION (kể cả script kiểm thử). Kiểm thử Rules chỉ dùng Firebase Emulator.
 - Chạy lệnh `firebase deploy` hoặc deploy production.

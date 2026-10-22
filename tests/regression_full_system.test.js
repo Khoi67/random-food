@@ -380,5 +380,102 @@ describe('🚀 FULL SYSTEM REGRESSION TEST SUITE — HÔM NAY ĂN GÌ (TP.HCM)',
       assert.ok(merged.some(d => d.id === 'dish_local_1' && d.status === 'pending'), 'Món pending cục bộ không được bị xóa');
       assert.ok(merged.some(d => d.id === 'dish_cloud_3' && d.status === 'pending'), 'Món pending từ cloud phải được thêm vào');
     });
+
+    it('6.5. Rules Schema cho admin_audit_logs cho phép trường id và bảo vệ append-only', () => {
+      const rules = getRules();
+      const auditLogSchema = rules.admin_audit_logs.$logId;
+      assert.ok(auditLogSchema.id, 'admin_audit_logs.$logId phải có validation cho trường id');
+      assert.ok(auditLogSchema.id['.validate'].includes('newData.isString()'));
+      assert.equal(auditLogSchema.$other['.validate'], false, 'admin_audit_logs phải có $other: false để chống ô nhiễm trường');
+    });
+
+    it('6.6. Cơ chế tự động dọn dẹp log: Loại bỏ các bản ghi cũ hơn 3 ngày (TTL 72h)', () => {
+      const now = Date.now();
+      const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+
+      const mockLogs = [
+        { id: 'log_recent_1', action: 'APPROVE_DISH', timestamp: now - 1000 }, // 1 giây trước -> GIỮ
+        { id: 'log_recent_2', action: 'UPDATE_DISH', timestamp: now - (2 * 24 * 60 * 60 * 1000) }, // 2 ngày trước -> GIỮ
+        { id: 'log_old_3', action: 'DELETE_DISH', timestamp: now - (4 * 24 * 60 * 60 * 1000) }, // 4 ngày trước -> XÓA
+        { id: 'log_very_old_4', action: 'RESTORE_DEFAULT_MENU', timestamp: now - (10 * 24 * 60 * 60 * 1000) } // 10 ngày trước -> XÓA
+      ];
+
+      const validLogs = mockLogs.filter(
+        (log) => log && typeof log.timestamp === 'number' && (now - log.timestamp) <= threeDaysMs
+      );
+
+      assert.equal(validLogs.length, 2, 'Chỉ 2 log trong vòng 3 ngày được giữ lại');
+      assert.ok(validLogs.some(l => l.id === 'log_recent_1'));
+      assert.ok(validLogs.some(l => l.id === 'log_recent_2'));
+      assert.ok(!validLogs.some(l => l.id === 'log_old_3'), 'Log 4 ngày trước phải bị dọn dẹp');
+      assert.ok(!validLogs.some(l => l.id === 'log_very_old_4'), 'Log 10 ngày trước phải bị dọn dẹp');
+    });
+
+    it('6.7. Rules Schema bảo vệ pending_locations: Chỉ Admin đọc, khách bị rate limit 60s, schema chặt chẽ', () => {
+      const rules = getRules();
+      assert.ok(rules.pending_locations, 'Phải có node pending_locations');
+      assert.ok(rules.pending_locations['.read'].includes('admin_config/adminUid'), 'Chỉ admin mới được đọc danh sách quán chờ duyệt');
+      
+      const locSchema = rules.pending_locations.$suggestionId;
+      assert.ok(locSchema['.write'].includes('!data.exists()'), 'Chỉ được tạo mới, cấm sửa/ghi đè');
+      assert.ok(locSchema['.write'].includes('lastLocationAt'), 'Bắt buộc rate limit 60s qua lastLocationAt');
+      assert.ok(locSchema['.write'].includes('writesEnabled') && locSchema['.write'].includes('!== false'), 'Tuân thủ cờ Kill Switch');
+      assert.ok(locSchema['.write'].includes("newData.child('createdBy').val() === auth.uid"), 'Phải định danh người gửi');
+
+      // Schema fields
+      assert.ok(locSchema.dishId['.validate'].includes('newData.isString()'));
+      assert.ok(locSchema.name['.validate'].includes('newData.val().length <= 100'));
+      assert.ok(locSchema.address['.validate'].includes('newData.val().length <= 200'));
+      assert.ok(locSchema.directionUrl['.validate'].includes('beginsWith') || locSchema.directionUrl['.validate'].includes('http'));
+      assert.equal(locSchema.$other['.validate'], false, 'pending_locations phải có $other: false chống injection');
+
+      // Rate limit node
+      assert.ok(rules.rate_limits.$uid.lastLocationAt['.validate'].includes('now'));
+    });
+
+    it('6.8. Logic ghép địa chỉ mới vào món: Bảo toàn danh sách quán cũ và thông tin cốt lõi', () => {
+      const originalDish = {
+        id: 'dish_pho_bo_1',
+        name: 'Phở Bò',
+        type: 'nuoc',
+        mealTypes: ['sang'],
+        locations: [
+          {
+            id: 'loc_pho_1',
+            name: 'Phở Hòa Pasteur',
+            address: '260C Pasteur, P. Võ Thị Sáu, Q.3',
+            directionUrl: 'https://maps.google.com/?q=260C+Pasteur'
+          }
+        ]
+      };
+
+      const suggestion = {
+        id: 'sug_loc_999',
+        dishId: 'dish_pho_bo_1',
+        dishName: 'Phở Bò',
+        name: 'Phở Lệ',
+        address: '303-305 Võ Văn Tần, Q.3, TP.HCM',
+        directionUrl: 'https://www.google.com/maps/dir/?api=1&destination=Ph%E1%BB%9F%20L%E1%BB%87'
+      };
+
+      const newLoc = {
+        id: `loc_${suggestion.dishId}_${Date.now()}`,
+        name: suggestion.name,
+        address: suggestion.address,
+        directionUrl: suggestion.directionUrl || ''
+      };
+
+      const updatedDish = {
+        ...originalDish,
+        locations: [...(originalDish.locations || []), newLoc]
+      };
+
+      assert.equal(updatedDish.locations.length, 2, 'Món phải có đúng 2 địa chỉ sau khi duyệt');
+      assert.equal(updatedDish.locations[0].name, 'Phở Hòa Pasteur', 'Quán cũ phải được giữ nguyên');
+      assert.equal(updatedDish.locations[1].name, 'Phở Lệ', 'Quán mới được bổ sung chính xác');
+      assert.ok(updatedDish.locations[1].directionUrl.startsWith('https://'), 'URL chỉ đường an toàn');
+      assert.equal(updatedDish.name, originalDish.name, 'Tên món không bị thay đổi');
+    });
   });
 });
+

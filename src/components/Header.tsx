@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, MoreVertical, History, ShieldCheck, Clock, LogOut, Bell, Check, ExternalLink, X } from 'lucide-react';
+import { Volume2, VolumeX, MoreVertical, History, ShieldCheck, Clock, LogOut, Bell, Check, ExternalLink, X, Sun, Moon } from 'lucide-react';
 import { isSoundEnabled, setSoundEnabled } from '../utils/audio.js';
 import { signOutAdminGoogle } from '../services/firebase.js';
 import { showToast } from '../utils/helpers.js';
@@ -13,8 +13,9 @@ interface HeaderProps {
   cloudStatus: 'connected' | 'connecting' | 'offline';
   isAdmin: boolean;
   pendingDishes?: Dish[];
+  pendingLocationsCount?: number;
   reportsCount?: number;
-  onApproveDish?: (dish: Dish) => void;
+  onApproveDish?: (dish) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   cloudStatus,
   isAdmin,
   pendingDishes = [],
+  pendingLocationsCount = 0,
   reportsCount = 0,
   onApproveDish,
 }) => {
@@ -32,8 +34,33 @@ export const Header: React.FC<HeaderProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [timeStr, setTimeStr] = useState('');
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
 
-  const totalPending = pendingDishes.length + reportsCount;
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
+  const notifyRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Click outside to close menu and notification popover
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (menuOpen && menuRef.current && !menuRef.current.contains(target)) {
+        setMenuOpen(false);
+      }
+      if (notifyOpen && notifyRef.current && !notifyRef.current.contains(target)) {
+        setNotifyOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen, notifyOpen]);
+
+  const totalPending = pendingDishes.length + reportsCount + pendingLocationsCount;
 
   useEffect(() => {
     const updateClock = () => {
@@ -57,8 +84,24 @@ export const Header: React.FC<HeaderProps> = ({
     setSoundEnabled(next);
   };
 
+  const handleToggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    if (next) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('food_wheel_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('food_wheel_theme', 'light');
+    }
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', next ? '#020617' : '#f8fafc');
+    }
+  };
+
   return (
-    <header className={`sticky top-0 ${notifyOpen || menuOpen ? 'z-50' : 'z-30'} bg-slate-950/85 backdrop-blur-xl border-b border-slate-800/80 shadow-lg`}>
+    <header className={`sticky top-0 ${notifyOpen || menuOpen ? 'z-50' : 'z-30'} bg-white/90 dark:bg-slate-950/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 shadow-xs dark:shadow-lg transition-colors duration-200`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* Brand Logo & Title */}
@@ -68,14 +111,14 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h1 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5">
+              <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
                 Hôm Nay Ăn Gì?
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 hidden sm:inline-block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 hidden sm:inline-block">
                   TP.HCM
                 </span>
               </h1>
             </div>
-            <p className="text-[11px] text-slate-400 hidden xs:block truncate max-w-[200px] sm:max-w-none">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden xs:block truncate max-w-[200px] sm:max-w-none">
               Vòng quay ẩm thực Sài Gòn • Quán ngon gần bạn
             </p>
           </div>
@@ -85,23 +128,23 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center space-x-2">
           
           {/* Live Clock (Desktop only) */}
-          <div className="hidden lg:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-400">
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-mono text-slate-200">{timeStr}</span>
+          <div className="hidden lg:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
+            <Clock className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+            <span className="font-mono text-slate-800 dark:text-slate-200">{timeStr}</span>
           </div>
 
           {/* Cloud Sync Status Badge */}
           <div
             title={cloudStatus === 'connected' ? 'Đang đồng bộ Firebase Cloud' : 'Chế độ ngoại tuyến'}
-            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 select-none"
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 select-none"
           >
             <span
               className={`w-2 h-2 rounded-full ${
                 cloudStatus === 'connected'
-                  ? 'bg-emerald-400 animate-pulse'
+                  ? 'bg-emerald-500 dark:bg-emerald-400 animate-pulse'
                   : cloudStatus === 'connecting'
-                  ? 'bg-amber-400 animate-ping'
-                  : 'bg-slate-500'
+                  ? 'bg-amber-500 dark:bg-amber-400 animate-ping'
+                  : 'bg-slate-400 dark:bg-slate-500'
               }`}
             />
             <span className="hidden sm:inline text-[11px] font-medium">
@@ -109,19 +152,34 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
+          {/* Theme Toggle Button (Light / Dark) */}
+          <button
+            type="button"
+            onClick={handleToggleTheme}
+            aria-label={isDark ? 'Chuyển sang giao diện sáng (Trắng)' : 'Chuyển sang giao diện tối'}
+            title={isDark ? 'Giao diện: ĐANG TỐI (Bấm để chuyển sang Sáng)' : 'Giao diện: ĐANG SÁNG (Bấm để chuyển sang Tối)'}
+            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:border-slate-800 dark:text-slate-300 dark:hover:text-white transition cursor-pointer"
+          >
+            {isDark ? (
+              <Moon className="w-4 h-4 text-indigo-400" />
+            ) : (
+              <Sun className="w-4 h-4 text-amber-500" />
+            )}
+          </button>
+
           {/* Sound Toggle Button */}
           <button
             onClick={handleToggleSound}
             aria-label={sound ? 'Tắt âm thanh' : 'Bật âm thanh'}
             title={sound ? 'Âm thanh: ĐANG BẬT' : 'Âm thanh: ĐANG TẮT'}
-            className="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
+            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:border-slate-800 dark:text-slate-300 dark:hover:text-white transition cursor-pointer"
           >
-            {sound ? <Volume2 className="w-4 h-4 text-brand-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+            {sound ? <Volume2 className="w-4 h-4 text-brand-600 dark:text-brand-400" /> : <VolumeX className="w-4 h-4 text-slate-400 dark:text-slate-500" />}
           </button>
 
           {/* Admin Notification Bell (Thông báo món & review/báo cáo cần duyệt) */}
           {isAdmin && (
-            <div className="relative">
+            <div ref={notifyRef} className="relative">
               <button
                 type="button"
                 onClick={() => setNotifyOpen(!notifyOpen)}
@@ -129,15 +187,15 @@ export const Header: React.FC<HeaderProps> = ({
                 title={totalPending > 0 ? `Có ${totalPending} mục cần phê duyệt` : 'Thông báo kiểm duyệt (0)'}
                 className={`relative p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-center ${
                   notifyOpen
-                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-md shadow-amber-500/20'
+                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-600 dark:text-amber-300 shadow-md shadow-amber-500/20'
                     : totalPending > 0
-                    ? 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/40 text-amber-400 shadow-sm'
-                    : 'bg-slate-900/80 hover:bg-slate-800 border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/40 text-amber-600 dark:text-amber-400 shadow-sm'
+                    : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:border-slate-800 dark:text-slate-400 dark:hover:text-white'
                 }`}
               >
                 <Bell className={`w-4 h-4 ${totalPending > 0 ? 'animate-bounce' : ''}`} />
                 {totalPending > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-lg animate-pulse border-2 border-slate-950">
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-lg animate-pulse border-2 border-white dark:border-slate-950">
                     {totalPending}
                   </span>
                 )}
@@ -151,18 +209,17 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={() => setNotifyOpen(false)}
                   />
                   <div
-                    className="absolute right-0 mt-2 w-80 sm:w-96 rounded-3xl border border-slate-700 bg-slate-900 shadow-2xl shadow-black p-4 z-50 flex flex-col max-h-[85vh] ring-1 ring-white/10"
-                    style={{ backgroundColor: '#0f172a', opacity: 1 }}
+                    className="absolute right-0 mt-2 w-80 sm:w-96 rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-4 z-50 flex flex-col max-h-[85vh] ring-1 ring-black/5 dark:ring-white/10"
                   >
                     {/* Popover Header */}
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-800 flex-shrink-0">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                       <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        <div className="p-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                           <Bell className="w-4 h-4" />
                         </div>
                         <div>
-                          <h3 className="text-xs font-bold text-white">Mục Cần Phê Duyệt</h3>
-                          <p className="text-[10px] text-slate-400">
+                          <h3 className="text-xs font-bold text-slate-900 dark:text-white">Mục Cần Phê Duyệt</h3>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">
                             {totalPending > 0
                               ? `${totalPending} mục đang chờ quản trị viên xử lý`
                               : 'Hiện không có mục nào chờ duyệt'}
@@ -171,7 +228,7 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                       <button
                         onClick={() => setNotifyOpen(false)}
-                        className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                        className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -180,10 +237,10 @@ export const Header: React.FC<HeaderProps> = ({
                     {/* Popover List */}
                     <div className="flex-1 overflow-y-auto py-3 space-y-3 pr-1">
                       {totalPending === 0 ? (
-                        <div className="py-6 text-center text-xs text-slate-400 space-y-1.5">
+                        <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 space-y-1.5">
                           <p className="text-2xl">✨</p>
-                          <p className="font-semibold text-slate-300">Tất cả đã được xử lý xong!</p>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="font-semibold text-slate-700 dark:text-slate-300">Tất cả đã được xử lý xong!</p>
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500">
                             Không có món ăn hay báo cáo vi phạm nào đang chờ duyệt.
                           </p>
                         </div>
@@ -192,19 +249,18 @@ export const Header: React.FC<HeaderProps> = ({
                           {/* Danh sách món ăn chờ duyệt */}
                           {pendingDishes.length > 0 && (
                             <div className="space-y-1.5">
-                              <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 px-1">
+                              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 px-1">
                                 <span>🍜 Món ăn chờ duyệt ({pendingDishes.length})</span>
                               </div>
                               {pendingDishes.map((dish) => (
                                 <div
                                   key={dish.id}
-                                  className="p-3 rounded-2xl border border-slate-800 flex items-center justify-between gap-2 text-xs"
-                                  style={{ backgroundColor: '#020617' }}
+                                  className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between gap-2 text-xs"
                                 >
                                   <div className="min-w-0 flex-1">
-                                    <div className="font-bold text-white truncate">{dish.name}</div>
-                                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-400">
-                                      <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
+                                    <div className="font-bold text-slate-900 dark:text-white truncate">{dish.name}</div>
+                                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+                                      <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-semibold">
                                         Chờ duyệt
                                       </span>
                                       {dish.type && (
@@ -221,7 +277,7 @@ export const Header: React.FC<HeaderProps> = ({
                                       onClick={async () => {
                                         await onApproveDish(dish);
                                       }}
-                                      className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white font-bold text-[11px] flex items-center gap-1 transition flex-shrink-0 border border-emerald-500/20 active:scale-95 cursor-pointer"
+                                      className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white font-bold text-[11px] flex items-center gap-1 transition flex-shrink-0 border border-emerald-500/20 active:scale-95 cursor-pointer"
                                       title="Duyệt nhanh món này"
                                     >
                                       <Check className="w-3.5 h-3.5" />
@@ -236,15 +292,15 @@ export const Header: React.FC<HeaderProps> = ({
                           {/* Báo cáo vi phạm / Đánh giá cần xử lý */}
                           {reportsCount > 0 && (
                             <div className="space-y-1.5 pt-1">
-                              <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 px-1">
+                              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 px-1">
                                 <span>🚩 Báo cáo vi phạm & Đánh giá ({reportsCount})</span>
                               </div>
                               <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between gap-2">
                                 <div className="text-xs">
-                                  <p className="font-bold text-rose-300">
+                                  <p className="font-bold text-rose-700 dark:text-rose-300">
                                     {reportsCount} báo cáo vi phạm cần xử lý
                                   </p>
-                                  <p className="text-[10px] text-slate-400 mt-0.5">
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                                     Bao gồm báo cáo sai địa chỉ hoặc nhận xét spam
                                   </p>
                                 </div>
@@ -261,12 +317,41 @@ export const Header: React.FC<HeaderProps> = ({
                               </div>
                             </div>
                           )}
+
+                          {/* Quán đề xuất mới từ khách */}
+                          {pendingLocationsCount > 0 && (
+                            <div className="space-y-1.5 pt-1">
+                              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 px-1">
+                                <span>📍 Quán đề xuất mới ({pendingLocationsCount})</span>
+                              </div>
+                              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-2">
+                                <div className="text-xs">
+                                  <p className="font-bold text-emerald-700 dark:text-emerald-300">
+                                    {pendingLocationsCount} quán ăn do khách gợi ý
+                                  </p>
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                    Bao gồm tên quán, địa chỉ và link Google Maps
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setNotifyOpen(false);
+                                    window.location.hash = '#/admin';
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex-shrink-0 transition active:scale-95 cursor-pointer shadow-md shadow-emerald-500/20"
+                                >
+                                  Duyệt quán
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </>
                       )}
                     </div>
 
                     {/* Popover Footer: Mở Trang Quản Trị Chi Tiết */}
-                    <div className="pt-3 border-t border-slate-800/80 flex-shrink-0">
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex-shrink-0">
                       <button
                         type="button"
                         onClick={() => {
@@ -287,11 +372,11 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           {/* Dropdown Menu "⋯" */}
-          <div className="relative">
+          <div ref={menuRef} className="relative">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               aria-label="Menu chức năng mở rộng"
-              className="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition cursor-pointer flex items-center justify-center"
+              className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:border-slate-800 dark:text-slate-300 dark:hover:text-white transition cursor-pointer flex items-center justify-center"
             >
               <MoreVertical className="w-4 h-4" />
               {historyCount > 0 && (
@@ -308,22 +393,21 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => setMenuOpen(false)}
                 />
                 <div
-                  className="absolute right-0 mt-2 w-64 sm:w-72 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl shadow-black p-2 z-50 ring-1 ring-white/10"
-                  style={{ backgroundColor: '#0f172a', opacity: 1 }}
+                  className="absolute right-0 mt-2 w-64 sm:w-72 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-2 z-50 ring-1 ring-black/5 dark:ring-white/10"
                 >
                   <button
                     onClick={() => {
                       setMenuOpen(false);
                       onOpenHistory();
                     }}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                   >
                     <span className="flex items-center gap-2 whitespace-nowrap">
-                      <History className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                      <History className="w-4 h-4 text-amber-500 dark:text-amber-400 flex-shrink-0" />
                       <span>Lịch sử 14 ngày & Tránh lặp</span>
                     </span>
                     {historyCount > 0 && (
-                      <span className="text-[10px] bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded-md font-bold flex-shrink-0 ml-2">
+                      <span className="text-[10px] bg-brand-500/20 text-brand-600 dark:text-brand-300 px-1.5 py-0.5 rounded-md font-bold flex-shrink-0 ml-2">
                         {historyCount}
                       </span>
                     )}
@@ -336,10 +420,10 @@ export const Header: React.FC<HeaderProps> = ({
                           setMenuOpen(false);
                           window.location.hash = '#/admin';
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition cursor-pointer mb-1"
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition cursor-pointer mb-1"
                       >
                         <span className="flex items-center gap-2">
-                          <ShieldCheck className="w-4 h-4 text-amber-400" />
+                          <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                           <span>Trang Quản Trị (#/admin)</span>
                         </span>
                         {totalPending > 0 ? (
@@ -347,7 +431,7 @@ export const Header: React.FC<HeaderProps> = ({
                             ⏳ {totalPending}
                           </span>
                         ) : (
-                          <span className="text-[10px] text-amber-400 font-mono">👑</span>
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono">👑</span>
                         )}
                       </button>
 
@@ -361,10 +445,10 @@ export const Header: React.FC<HeaderProps> = ({
                             showToast('Đã đăng xuất tài khoản Quản trị viên', 'info');
                           }
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 hover:bg-rose-500/10 transition cursor-pointer"
                       >
                         <span className="flex items-center gap-2">
-                          <LogOut className="w-4 h-4 text-rose-400" />
+                          <LogOut className="w-4 h-4 text-rose-500 dark:text-rose-400" />
                           <span>Đăng xuất</span>
                         </span>
                       </button>
@@ -375,13 +459,13 @@ export const Header: React.FC<HeaderProps> = ({
                         setMenuOpen(false);
                         onOpenAdmin();
                       }}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                     >
                       <span className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-slate-400" />
+                        <ShieldCheck className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                         <span>Đăng nhập Quản trị viên</span>
                       </span>
-                      <span className="text-[10px] text-slate-500 font-mono">🔒</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">🔒</span>
                     </button>
                   )}
                 </div>

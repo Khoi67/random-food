@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dish, ReportItem } from '../../types/index.js';
+import { Dish, ReportItem, LocationSuggestion } from '../../types/index.js';
 import { 
   UtensilsCrossed, 
   Clock, 
@@ -14,6 +14,7 @@ import {
 interface AdminOverviewProps {
   dishes: Dish[];
   pendingDishes: Dish[];
+  pendingLocations?: LocationSuggestion[];
   reports: ReportItem[];
   onNavigateTab: (tab: 'queue' | 'dishes' | 'reviews' | 'backup' | 'logs') => void;
 }
@@ -21,11 +22,13 @@ interface AdminOverviewProps {
 export const AdminOverview: React.FC<AdminOverviewProps> = ({
   dishes,
   pendingDishes,
+  pendingLocations = [],
   reports,
   onNavigateTab,
 }) => {
   const approvedDishes = dishes.filter((d) => d.status === 'approved' || !d.status);
   const pendingCount = pendingDishes.length;
+  const pendingLocCount = pendingLocations.length;
   const reportsCount = reports.length;
 
   const sangCount = approvedDishes.filter((d) => 
@@ -55,20 +58,20 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Approved */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 backdrop-blur-md shadow-xs dark:shadow-xl flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Món Đang Phục Vụ
             </span>
-            <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20">
+            <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-3xl font-black text-white">{approvedDishes.length}</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white">{approvedDishes.length}</span>
             <button
               onClick={() => onNavigateTab('dishes')}
-              className="text-xs font-semibold text-brand-400 hover:text-brand-300 flex items-center gap-1 transition"
+              className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 flex items-center gap-1 transition cursor-pointer"
             >
               Xem thực đơn <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -76,27 +79,27 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
         </div>
 
         {/* Pending Approval */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 backdrop-blur-md shadow-xs dark:shadow-xl flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Chờ Phê Duyệt
             </span>
-            <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-400 border border-amber-500/20">
+            <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-600 dark:text-amber-400 border border-amber-500/20">
               <Clock className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-4 flex items-baseline justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-3xl font-black text-white">{pendingCount}</span>
-              {pendingCount > 0 && (
-                <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold animate-pulse">
-                  Cần xử lý
+              <span className="text-3xl font-black text-slate-900 dark:text-white">{pendingCount + pendingLocCount}</span>
+              {(pendingCount > 0 || pendingLocCount > 0) && (
+                <span className="text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                  {pendingCount} món • {pendingLocCount} quán
                 </span>
               )}
             </div>
             <button
               onClick={() => onNavigateTab('queue')}
-              className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition"
+              className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 flex items-center gap-1 transition cursor-pointer"
             >
               Duyệt ngay <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -104,27 +107,27 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
         </div>
 
         {/* Reports Queue */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 backdrop-blur-md shadow-xs dark:shadow-xl flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Báo Cáo Vi Phạm
             </span>
-            <div className="p-2.5 bg-rose-500/10 rounded-xl text-rose-400 border border-rose-500/20">
+            <div className="p-2.5 bg-rose-500/10 rounded-xl text-rose-600 dark:text-rose-400 border border-rose-500/20">
               <AlertTriangle className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-4 flex items-baseline justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-3xl font-black text-white">{reportsCount}</span>
+              <span className="text-3xl font-black text-slate-900 dark:text-white">{reportsCount}</span>
               {reportsCount > 0 && (
-                <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full font-bold">
+                <span className="text-[10px] bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full font-bold">
                   Vi phạm
                 </span>
               )}
             </div>
             <button
               onClick={() => onNavigateTab('queue')}
-              className="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 transition"
+              className="text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 flex items-center gap-1 transition cursor-pointer"
             >
               Xem báo cáo <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -132,20 +135,20 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
         </div>
 
         {/* Total Reviews */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 backdrop-blur-md shadow-xs dark:shadow-xl flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Tổng Đánh Giá
             </span>
-            <div className="p-2.5 bg-purple-500/10 rounded-xl text-purple-400 border border-purple-500/20">
+            <div className="p-2.5 bg-purple-500/10 rounded-xl text-purple-600 dark:text-purple-400 border border-purple-500/20">
               <UtensilsCrossed className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-3xl font-black text-white">{totalReviewsCount}</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white">{totalReviewsCount}</span>
             <button
               onClick={() => onNavigateTab('reviews')}
-              className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition"
+              className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center gap-1 transition cursor-pointer"
             >
               Kiểm duyệt <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -154,52 +157,52 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
       </div>
 
       {/* Meals Distribution */}
-      <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5">
-        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+      <div className="bg-white dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
           <span>Phân Bố Theo Bữa Ăn TP.HCM</span>
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+          <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
                 <Sun className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs text-slate-400">Bữa Sáng</div>
-                <div className="text-lg font-bold text-white">{sangCount} món</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Bữa Sáng</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">{sangCount} món</div>
               </div>
             </div>
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
               {approvedDishes.length > 0 ? Math.round((sangCount / approvedDishes.length) * 100) : 0}%
             </span>
           </div>
 
-          <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+          <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
+              <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500">
                 <CloudSun className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs text-slate-400">Bữa Trưa</div>
-                <div className="text-lg font-bold text-white">{truaCount} món</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Bữa Trưa</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">{truaCount} món</div>
               </div>
             </div>
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
               {approvedDishes.length > 0 ? Math.round((truaCount / approvedDishes.length) * 100) : 0}%
             </span>
           </div>
 
-          <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+          <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500">
                 <Moon className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs text-slate-400">Bữa Chiều / Tối</div>
-                <div className="text-lg font-bold text-white">{toiCount} món</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Bữa Chiều / Tối</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">{toiCount} món</div>
               </div>
             </div>
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
               {approvedDishes.length > 0 ? Math.round((toiCount / approvedDishes.length) * 100) : 0}%
             </span>
           </div>
