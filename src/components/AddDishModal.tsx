@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dish, MealType, PriceRange, DishType, LocationItem } from '../types/index.js';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { showToast } from '../utils/helpers.js';
+import { ADD_DISH_COOLDOWN_MS } from '../utils/constants.js';
 import { trackAddDish } from '../services/analytics.js';
 import { isCurrentUserAdmin, getCurrentUser, ensureAuth } from '../services/firebase.js';
 
@@ -78,7 +79,7 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
       const lastDishTime = Number(localStorage.getItem('hom_nay_an_gi_last_dish_time') || 0);
       const now = Date.now();
       const elapsed = (now - lastDishTime) / 1000;
-      const cooldownSec = 60;
+      const cooldownSec = Math.ceil(ADD_DISH_COOLDOWN_MS / 1000);
       if (elapsed < cooldownSec) {
         const remaining = Math.ceil(cooldownSec - elapsed);
         showToast(`Bạn thao tác quá nhanh. Vui lòng đợi ${remaining}s trước khi gửi món tiếp theo! ⏳`, 'warning');

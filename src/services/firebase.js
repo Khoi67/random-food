@@ -83,6 +83,19 @@ export function setAdminEmailHash(hash) {
   checkCurrentUserAdmin();
 }
 
+export async function syncAdminUidToCloud() {
+  if (!currentUser || currentUser.isAnonymous || !isAdminUser || !firebaseDb) return;
+  try {
+    const adminUidRef = ref(firebaseDb, 'admin_config/adminUid');
+    const snap = await get(adminUidRef).catch(() => null);
+    if (!snap || !snap.exists() || snap.val() !== currentUser.uid) {
+      await set(adminUidRef, currentUser.uid).catch((err) => {
+        console.warn("Không thể tự đồng bộ adminUid (có thể cần quyền ghi lần đầu hoặc cấu hình thủ công trên Firebase Console):", err.message);
+      });
+    }
+  } catch (_) {}
+}
+
 export async function checkCurrentUserAdmin() {
   if (!currentUser || currentUser.isAnonymous || !currentUser.email || !adminEmailHash) {
     isAdminUser = false;
@@ -91,6 +104,9 @@ export async function checkCurrentUserAdmin() {
   try {
     const userHash = await hashString(currentUser.email);
     isAdminUser = (userHash === adminEmailHash);
+    if (isAdminUser) {
+      syncAdminUidToCloud();
+    }
   } catch (_) {
     isAdminUser = false;
   }
@@ -99,6 +115,69 @@ export async function checkCurrentUserAdmin() {
 
 export function isCurrentUserAdmin() {
   return isAdminUser;
+}
+
+let latestSharedDishesRaw = null;
+let latestLocationReviewsRaw = null;
+
+/**
+ * Gộp đánh giá theo quán từ location_reviews và đánh giá chung vào từng món ăn
+ */
+export function mergeDishesWithLocationReviews(dishesRaw, locationReviewsRaw) {
+  if (!dishesRaw) return [];
+  let rawList = [];
+  if (Array.isArray(dishesRaw)) {
+    rawList = dishesRaw.filter(Boolean);
+  } else if (typeof dishesRaw === 'object') {
+    rawList = Object.values(dishesRaw);
+  }
+
+  return rawList.map((dish) => {
+    const normalized = normalizeDish(dish);
+    if (!normalized || !normalized.id) return normalized;
+
+    // Gộp location_reviews vào dish.locations nếu có
+    if (locationReviewsRaw && locationReviewsRaw[normalized.id] && Array.isArray(normalized.locations)) {
+      const dishLocMap = locationReviewsRaw[normalized.id];
+      normalized.locations = normalized.locations.map((loc, idx) => {
+        if (!loc) return loc;
+        const locId = loc.id || String(idx);
+        const rawReviewsObj = dishLocMap[locId] || dishLocMap[String(idx)];
+        if (!rawReviewsObj || typeof rawReviewsObj !== 'object') return loc;
+
+        const revMap = new Map();
+        if (Array.isArray(loc.reviews)) {
+          for (const r of loc.reviews) {
+            if (r) revMap.set(r.id || `${r.createdAt}_${r.author}`, r);
+          }
+        }
+
+        for (const [uid, r] of Object.entries(rawReviewsObj)) {
+          if (r && typeof r === 'object') {
+            const revItem = {
+              id: r.id || uid,
+              author: r.author || 'Thực khách Sài Gòn',
+              stars: Number(r.stars) || 5,
+              comment: r.comment || '',
+              createdAt: Number(r.createdAt) || Date.now()
+            };
+            revMap.set(revItem.id, revItem);
+          }
+        }
+
+        const sortedReviews = Array.from(revMap.values()).sort(
+          (a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0)
+        );
+
+        return {
+          ...loc,
+          reviews: sortedReviews
+        };
+      });
+    }
+
+    return normalized;
+  });
 }
 
 /**
@@ -187,15 +266,24 @@ export async function initFirebase({
     firebaseDb = getDatabase(firebaseApp, configObj.databaseURL);
     firebaseAuth = getAuth(firebaseApp);
 
-    // Tải trước danh sách món ăn từ REST API để load tức thì 100% không bị treo
+    // Tải trước danh sách món ăn & reviews theo quán từ REST API để load tức thì 100% không bị treo
     try {
       const restEndpoint = `${configObj.databaseURL.replace(/\/$/, '')}/shared_dishes.json`;
-      const restRes = await fetch(restEndpoint);
-      if (restRes.ok) {
+      const locReviewsEndpoint = `${configObj.databaseURL.replace(/\/$/, '')}/location_reviews.json`;
+      const [restRes, locRes] = await Promise.all([
+        fetch(restEndpoint).catch(() => null),
+        fetch(locReviewsEndpoint).catch(() => null)
+      ]);
+
+      if (locRes && locRes.ok) {
+        latestLocationReviewsRaw = await locRes.json().catch(() => null);
+      }
+
+      if (restRes && restRes.ok) {
         const restJson = await restRes.json();
         if (restJson) {
-          let preloaded = Array.isArray(restJson) ? restJson.filter(Boolean) : Object.values(restJson);
-          preloaded = preloaded.map(normalizeDish);
+          latestSharedDishesRaw = restJson;
+          const preloaded = mergeDishesWithLocationReviews(latestSharedDishesRaw, latestLocationReviewsRaw);
           if (preloaded.length > 0) {
             if (typeof setDishes === 'function') setDishes(preloaded);
             if (typeof onDishesSync === 'function') onDishesSync(preloaded);
@@ -267,8 +355,29 @@ export async function initFirebase({
       }
     });
 
-    // 4. Lắng nghe dữ liệu danh sách món ăn
+    // 4. Lắng nghe dữ liệu danh sách món ăn và review theo quán
     const dishesRef = ref(firebaseDb, "shared_dishes");
+    const locationReviewsRef = ref(firebaseDb, "location_reviews");
+
+    const dispatchDishesUpdate = () => {
+      if (!latestSharedDishesRaw) return;
+      const loadedDishes = mergeDishesWithLocationReviews(latestSharedDishesRaw, latestLocationReviewsRaw);
+      if (loadedDishes.length > 0) {
+        if (typeof setDishes === 'function') setDishes(loadedDishes);
+        if (typeof onDishesSync === 'function') onDishesSync(loadedDishes);
+        if (typeof onDataChange === 'function') onDataChange(loadedDishes);
+        saveDishesLocally(loadedDishes);
+      }
+    };
+
+    onValue(locationReviewsRef, (snapshot) => {
+      latestLocationReviewsRaw = snapshot.val() || {};
+      if (latestSharedDishesRaw) {
+        dispatchDishesUpdate();
+      }
+    }, (err) => {
+      console.warn("Lắng nghe location_reviews bị hạn chế:", err.message);
+    });
 
     let hasInitialData = false;
     const connectionTimeout = setTimeout(() => {
@@ -281,26 +390,10 @@ export async function initFirebase({
     onValue(dishesRef, (snapshot) => {
       hasInitialData = true;
       clearTimeout(connectionTimeout);
-      const cloudData = snapshot.val();
+      latestSharedDishesRaw = snapshot.val();
 
-      if (cloudData) {
-        // Chuẩn hóa dữ liệu tương thích ngược (nếu là object index thì đổi sang array)
-        let loadedDishes = [];
-        if (Array.isArray(cloudData)) {
-          loadedDishes = cloudData.filter(Boolean);
-        } else if (typeof cloudData === 'object') {
-          loadedDishes = Object.values(cloudData);
-        }
-
-        // Tương thích ngược & Soft migration (Requirement 3.1)
-        loadedDishes = loadedDishes.map(normalizeDish);
-
-        if (loadedDishes.length > 0) {
-          if (typeof setDishes === 'function') setDishes(loadedDishes);
-          if (typeof onDishesSync === 'function') onDishesSync(loadedDishes);
-          if (typeof onDataChange === 'function') onDataChange(loadedDishes);
-          saveDishesLocally(loadedDishes);
-        }
+      if (latestSharedDishesRaw) {
+        dispatchDishesUpdate();
       } else {
         // Cloud chưa có dữ liệu: chỉ tự động đẩy dữ liệu mẫu lên nếu là Admin đã đăng nhập
         if (isAdminUser) {
@@ -719,39 +812,42 @@ export async function addReviewCloud(dishId, locationIndexOrId, review) {
 /**
  * Xóa review spam trên Cloud
  */
-export async function deleteReviewCloud(dishId, locationIndex, reviewId) {
+export async function deleteReviewCloud(dishId, locationIndexOrId, reviewId) {
   if (!dishId || !reviewId) return false;
   if (isFirebaseConnected && firebaseDb) {
     try {
-      // 1. Xóa trong location_reviews độc lập nếu có
-      if (locationIndex != null) {
-        await remove(ref(firebaseDb, `location_reviews/${dishId}/${locationIndex}/${reviewId}`)).catch(() => {});
+      // 1. Xóa trong location_reviews độc lập (cả theo locId và theo index)
+      if (locationIndexOrId != null) {
+        const locKey = String(locationIndexOrId);
+        await remove(ref(firebaseDb, `location_reviews/${dishId}/${locKey}/${reviewId}`)).catch(() => {});
       }
-      // 2. Xóa trong shared_dishes
-      if (locationIndex != null) {
-        const locRef = ref(firebaseDb, `shared_dishes/${dishId}/locations/${locationIndex}`);
-        const snap = await get(locRef);
-        if (snap.exists()) {
+      // 2. Xóa trong shared_dishes/$dishId/reviews/$reviewId
+      await remove(ref(firebaseDb, `shared_dishes/${dishId}/reviews/${reviewId}`)).catch(() => {});
+
+      // 3. Xóa trong mảng shared_dishes/$dishId/locations/$locationIndex nếu là index số
+      if (locationIndexOrId != null && !isNaN(Number(locationIndexOrId))) {
+        const locRef = ref(firebaseDb, `shared_dishes/${dishId}/locations/${locationIndexOrId}`);
+        const snap = await get(locRef).catch(() => null);
+        if (snap && snap.exists()) {
           const locData = snap.val();
-          const updatedReviews = (locData.reviews || []).filter((r) => r.id !== reviewId);
-          await update(locRef, { reviews: updatedReviews });
-          return true;
+          if (locData && Array.isArray(locData.reviews)) {
+            const updatedReviews = locData.reviews.filter((r) => r && r.id !== reviewId);
+            await update(locRef, { reviews: updatedReviews }).catch(() => {});
+          }
         }
-      } else {
+      } else if (locationIndexOrId == null) {
+        // Xóa trong shared_dishes nếu là review món
         const dishRef = ref(firebaseDb, `shared_dishes/${dishId}`);
-        const snap = await get(dishRef);
-        if (snap.exists()) {
+        const snap = await get(dishRef).catch(() => null);
+        if (snap && snap.exists()) {
           const dishData = snap.val();
-          if (Array.isArray(dishData.reviews)) {
-            const updatedReviews = dishData.reviews.filter((r) => r.id !== reviewId);
-            await update(dishRef, { reviews: updatedReviews });
-            return true;
-          } else if (dishData.reviews && typeof dishData.reviews === 'object') {
-            await remove(ref(firebaseDb, `shared_dishes/${dishId}/reviews/${reviewId}`));
-            return true;
+          if (dishData && Array.isArray(dishData.reviews)) {
+            const updatedReviews = dishData.reviews.filter((r) => r && r.id !== reviewId);
+            await update(dishRef, { reviews: updatedReviews }).catch(() => {});
           }
         }
       }
+      return true;
     } catch (err) {
       console.error("Lỗi xóa review trên Cloud:", err);
       showToast("Lỗi xóa đánh giá trên Cloud: " + (err.message || ''), "error");

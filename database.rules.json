@@ -72,7 +72,7 @@
           ".validate": "!newData.exists() || newData.isString()"
         },
         "createdAt": {
-          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= now - 600000 && newData.val() <= now + 600000)"
+          ".validate": "!newData.exists() || newData.isNumber()"
         },
         "updatedAt": {
           ".validate": "!newData.exists() || newData.isNumber()"

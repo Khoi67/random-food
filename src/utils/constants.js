@@ -6,10 +6,10 @@ export const ADMIN_EMAIL_KEY = 'hom_nay_an_gi_admin_email_v1';
 export const ADMIN_EMAIL_HASH_KEY = 'hom_nay_an_gi_admin_email_hash_v1';
 export const RECAPTCHA_KEY = 'hom_nay_an_gi_recaptcha_key_v1';
 
-// Giới hạn chống spam
-export const ADD_DISH_COOLDOWN_MS = 10000; // 10 giây giãn cách giữa các lần thêm món
+// Giới hạn chống spam (khớp 100% với database.rules.json)
+export const ADD_DISH_COOLDOWN_MS = 60000; // 60 giây giãn cách giữa các lần thêm món
 export const MAX_SHARED_DISHES = 80;       // Tối đa 80 món trong danh sách dùng chung
-export const REVIEW_COOLDOWN_MS = 15000;   // 15 giây giữa các lần gửi đánh giá
+export const REVIEW_COOLDOWN_MS = 20000;   // 20 giây giữa các lần gửi đánh giá
 export const MAX_REVIEWS_PER_DISH = 15;    // Tối đa 15 đánh giá mỗi quán
 
 export const DEFAULT_FIREBASE_CONFIG = null;

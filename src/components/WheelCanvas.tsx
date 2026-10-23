@@ -229,6 +229,32 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({
     draw(rotationAngleRef.current);
   }, [slices, renderWheelToBuffer, draw]);
 
+  // Tự động vẽ lại Wheel khi người dùng chuyển đổi Theme Sáng/Tối (class 'dark' trên <html> thay đổi)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const canvas = canvasRef.current;
+          if (!canvas) break;
+          const dpr = window.devicePixelRatio || 1;
+          const size = canvas.width / dpr || 400;
+          renderWheelToBuffer(size, dpr);
+          draw(rotationAngleRef.current);
+          break;
+        }
+      }
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, [renderWheelToBuffer, draw]);
+
   // Spin Wheel function
   const spin = () => {
     if (isSpinningRef.current || slices.length === 0) return;

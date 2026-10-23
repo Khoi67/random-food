@@ -86,7 +86,22 @@ export function initPwa() {
   const ua = window.navigator.userAgent.toLowerCase();
   isIosDevice = /iphone|ipad|ipod/.test(ua) && !window.MSStream;
 
-  // 1. Đăng ký Service Worker
+  // 1. Bắt sự kiện beforeinstallprompt để kích hoạt popup cài đặt gốc
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredPrompt = null;
+      isStandalone = true;
+      showToast('Cài đặt ứng dụng lên màn hình chính thành công! 🎉', 'success');
+    });
+  }
+
+  // 2. Đăng ký Service Worker
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')

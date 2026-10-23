@@ -407,7 +407,11 @@ export const App: React.FC = () => {
   const handleWinner = (dish: Dish) => {
     recordSpinHistory(dish, currentMeal);
     setHistoryCount(getSpinHistory().length);
-    trackSpin(dish.id, dish.name, currentMeal);
+    trackSpin({
+      meal: currentMeal,
+      dishesCount: activeDishes.length,
+      isFiltered: currentFilters.price !== 'all' || currentFilters.dishType !== 'all' || currentFilters.vegOnly,
+    });
     setWinnerDish(dish);
   };
 
@@ -436,7 +440,8 @@ export const App: React.FC = () => {
       }
       return d;
     });
-    persistDishes(updated);
+    setDishes(updated);
+    saveDishesLocally(updated);
 
     // Đồng bộ đánh giá lên Firebase Cloud (hỗ trợ cả review theo quán lẫn review món)
     const targetLocId =

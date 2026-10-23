@@ -163,15 +163,41 @@ export function normalizeDish(dish) {
       const rawId = loc.id && typeof loc.id === 'string' ? loc.id.trim() : '';
       const safeId = /^[A-Za-z0-9_-]{1,64}$/.test(rawId) ? rawId : `loc_${dishIdPrefix}_${idx}`;
 
+      let locReviews = [];
+      if (Array.isArray(loc.reviews)) {
+        locReviews = loc.reviews;
+      } else if (loc.reviews && typeof loc.reviews === 'object') {
+        locReviews = Object.entries(loc.reviews).map(([uid, r]) => ({
+          id: r?.id || uid,
+          author: String(r?.author || 'Thực khách Sài Gòn').slice(0, 50),
+          stars: Number(r?.stars) || 5,
+          comment: String(r?.comment || '').slice(0, 300),
+          createdAt: Number(r?.createdAt) || Date.now()
+        }));
+      }
+
       return {
         ...loc,
         id: safeId,
         name: String(loc.name || 'Quán ngon').slice(0, 100),
         address: String(loc.address || 'TP. Hồ Chí Minh').slice(0, 200),
-        reviews: Array.isArray(loc.reviews) ? loc.reviews : []
+        reviews: locReviews
       };
     })
     .filter(Boolean);
+
+  let dishReviews = [];
+  if (Array.isArray(dish.reviews)) {
+    dishReviews = dish.reviews;
+  } else if (dish.reviews && typeof dish.reviews === 'object') {
+    dishReviews = Object.entries(dish.reviews).map(([uid, r]) => ({
+      id: r?.id || uid,
+      author: String(r?.author || 'Thực khách Sài Gòn').slice(0, 50),
+      stars: Number(r?.stars) || 5,
+      comment: String(r?.comment || '').slice(0, 300),
+      createdAt: Number(r?.createdAt) || Date.now()
+    }));
+  }
 
   return {
     ...dish,
@@ -182,7 +208,7 @@ export function normalizeDish(dish) {
     priceRange,
     tags,
     locations,
-    reviews: Array.isArray(dish.reviews) ? dish.reviews : []
+    reviews: dishReviews
   };
 }
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dish, ReviewItem } from '../types/index.js';
 import { X, Star, Send, Navigation, MapPin } from 'lucide-react';
 import { showToast, createGoogleMapsUrl } from '../utils/helpers.js';
+import { REVIEW_COOLDOWN_MS } from '../utils/constants.js';
 
 interface ReviewModalProps {
   dish: Dish | null;
@@ -62,11 +63,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       return;
     }
 
-    // 2. Kiểm tra Rate limit phía client (cooldown 10 giây giữa 2 lần gửi review)
+    // 2. Kiểm tra Rate limit phía client (cooldown 20 giây giữa 2 lần gửi review)
     const lastRevTime = Number(localStorage.getItem('hom_nay_an_gi_last_review_time') || 0);
     const now = Date.now();
     const elapsed = (now - lastRevTime) / 1000;
-    const cooldownSec = 10;
+    const cooldownSec = Math.ceil(REVIEW_COOLDOWN_MS / 1000);
     if (elapsed < cooldownSec) {
       const remaining = Math.ceil(cooldownSec - elapsed);
       showToast(`Bạn thao tác quá nhanh. Vui lòng đợi ${remaining}s trước khi gửi đánh giá tiếp theo! ⏳`, 'warning');
